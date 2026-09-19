@@ -2,19 +2,20 @@
  * 全局配置：TVS（藤昇）发射台 DApp 子站
  *
  * 链上地址与后端地址统一收口在这里。
- * 当前为「占位模式」：TVS 专属智能合约尚未部署（白皮书规划的 Flap/IWO 体系开发中），
- * 结构与 KimiMint 发射工厂模板对齐，部署后替换地址并把 contractsReady 置为 true 即全站启用。
+ * TVS 专属合约已于 BSC 主网部署（kimiMint 发射模板）：
+ *   Factory:        0xf0B745dc06C5b69950De5ab4461f777b9FD9fDAa
+ *   TokenDeployer:  0xCF0BB26d251A0c2035ce2CB8C1b2972AA0cA0363
+ *   VaultDeployer:  0x7C8978f478eC77d2fAf1390268fC161b7deDFcCB
+ *   FeeRecipient:   0x25a39709B476B380a75b11521893Db0cbA52b39B（平台税临时收款，后续可换）
+ *   RequiredSuffix: 0xa86b ｜ CreationFee: 0.005 BNB
  */
 export const config = {
   chainId: 56,
   nativeSymbol: "BNB",
-  /** 是否已部署 TVS 专属合约。false = 占位模式，前端展示占位提示并禁用发币/铸造动作 */
-  contractsReady: false,
-  /**
-   * TVS 专属 KimiMintLaunchFactory（占位地址，0x…a86b 呼应藤绿）。
-   * TODO: 部署后替换为真实工厂地址。
-   */
-  factoryAddress: "0x000000000000000000000000000000000000a86b",
+  /** 是否已部署 TVS 专属合约。false = 占位模式，前端禁用发币/铸造动作 */
+  contractsReady: true,
+  /** TVS 专属 KimiMintLaunchFactory（BSC 主网） */
+  factoryAddress: "0xf0B745dc06C5b69950De5ab4461f777b9FD9fDAa",
   rpcUrl: "https://bsc.publicnode.com",
   /** 后端地址。留空 = 同源（dev 走 vite proxy /api；生产走反向代理） */
   backendUrl: "",
@@ -26,9 +27,9 @@ export const config = {
   tokenCreationHex: "",
   /** 默认分红代币（USDT on BSC） */
   defaultRewardToken: "0x55d398326f99059fF775485246999027B3197955",
-  /** 占位模式提示文案 */
+  /** 占位模式提示文案（仅在 contractsReady=false 时展示） */
   placeholderNote:
-    "TVS 专属合约尚未部署，当前为占位模式。合约部署完成后将自动启用发射、铸造与列表功能。",
+    "发射功能尚未完全就绪（合约或后端部署中）。请稍后重试或联系项目方。",
 };
 
 export const EXPLORER_BASE =
