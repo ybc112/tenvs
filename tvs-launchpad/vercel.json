@@ -1,6 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://tvs-backend.example.com/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "http://tvs-api.36.151.145.15.sslip.io/tvs-api/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
