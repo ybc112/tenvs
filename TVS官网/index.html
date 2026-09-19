@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TVS — Tendril Vault | 首个原生RWA储备的DeFi 3.0发射协议</title>
+<meta name="description" content="TVS（藤昇）是藤蔓生态首个子币，以只涨不跌的TENDRIL为储备资产，打造原生RWA+DeFi 3.0+发射平台的三重叙事价值飞轮。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0a;--bg2:#111111;--bg3:#181818;
+  --gold:#d4af37;--gold-l:#f0d78c;--gold-d:#a08228;
+  --green:#00a86b;--green-l:#32c88c;--green-d:#006b45;
+  --white:#ffffff;--gray:#cccccc;--gray-d:#888888;--gray-d2:#555555;
+  --card:rgba(255,255,255,0.03);--card-border:rgba(212,175,55,0.15);
+  --glow-gold:rgba(212,175,55,0.15);--glow-green:rgba(0,168,107,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter','Noto Sans SC',sans-serif;background:var(--bg);color:var(--white);line-height:1.7;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* ===== Navbar ===== */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(10,10,10,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(212,175,55,0.1);transition:all .3s}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;max-width:1200px;margin:0 auto;padding:0 24px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green-d));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.logo-icon::after{content:'';position:absolute;width:24px;height:24px;border:3px solid var(--gold-l);border-radius:50%;border-left-color:transparent;transform:rotate(-30deg)}
+.logo-text{font-size:22px;font-weight:800;letter-spacing:1px;background:linear-gradient(135deg,var(--gold-l),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:11px;color:var(--gray-d);letter-spacing:2px;margin-top:-2px}
+.nav-links{display:flex;gap:36px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--gray);transition:color .2s;position:relative}
+.nav-links a:hover{color:var(--gold-l)}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--gold);transition:width .2s}
+.nav-links a:hover::after{width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .25s;border:none;font-family:inherit}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#0a0a0a}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow-gold)}
+.btn-outline{background:transparent;border:1px solid var(--gold);color:var(--gold-l)}
+.btn-outline:hover{background:rgba(212,175,55,0.08)}
+.btn-lg{padding:14px 36px;font-size:16px}
+.mobile-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer}
+.mobile-toggle span{width:24px;height:2px;background:var(--gold);transition:.3s}
+
+/* ===== Hero ===== */
+.hero{min-height:100vh;display:flex;align-items:center;position:relative;padding-top:72px;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(212,175,55,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 70%,rgba(0,168,107,0.06) 0%,transparent 50%)}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(212,175,55,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(212,175,55,0.03) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse at center,black 30%,transparent 70%)}
+.hero-content{position:relative;z-index:2;text-align:center;max-width:900px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:50px;background:rgba(0,168,107,0.1);border:1px solid rgba(0,168,107,0.3);font-size:13px;font-weight:500;color:var(--green-l);margin-bottom:28px}
+.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green-l);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-size:clamp(36px,6vw,68px);font-weight:900;line-height:1.15;margin-bottom:24px;letter-spacing:-1px}
+.hero h1 .gold{background:linear-gradient(135deg,var(--gold-l),var(--gold),var(--gold-d));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero h1 .green{background:linear-gradient(135deg,var(--green-l),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:clamp(15px,2vw,19px);color:var(--gray);max-width:700px;margin:0 auto 40px;line-height:1.8}
+.hero-cta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:800px;margin:0 auto}
+.stat-card{padding:20px 16px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);backdrop-filter:blur(10px)}
+.stat-value{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--gold-l),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-label{font-size:12px;color:var(--gray-d);margin-top:4px;letter-spacing:1px}
+
+/* ===== Section Common ===== */
+.section{padding:100px 0;position:relative}
+.section-tag{display:inline-block;padding:6px 16px;border-radius:50px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.2);font-size:12px;font-weight:600;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+.section-title{font-size:clamp(28px,4vw,44px);font-weight:800;line-height:1.2;margin-bottom:16px}
+.section-desc{font-size:16px;color:var(--gray);max-width:650px;line-height:1.8}
+.section-header{margin-bottom:56px}
+.section-header.center{text-align:center}
+.section-header.center .section-desc{margin:0 auto}
+
+/* ===== Trinity Narrative ===== */
+.trinity{background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 50%,var(--bg) 100%)}
+.trinity-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.trinity-card{padding:40px 32px;border-radius:16px;background:var(--card);border:1px solid var(--card-border);position:relative;overflow:hidden;transition:all .35s}
+.trinity-card:hover{transform:translateY(-6px);border-color:rgba(212,175,55,0.35);box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+.trinity-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s}
+.trinity-card:hover::before{opacity:1}
+.trinity-icon{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:24px}
+.trinity-icon.gold{background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05));border:1px solid rgba(212,175,55,0.25)}
+.trinity-icon.green{background:linear-gradient(135deg,rgba(0,168,107,0.15),rgba(0,168,107,0.05));border:1px solid rgba(0,168,107,0.25)}
+.trinity-icon.mix{background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(0,168,107,0.1));border:1px solid rgba(212,175,55,0.2)}
+.trinity-card h3{font-size:22px;font-weight:700;margin-bottom:12px}
+.trinity-card p{font-size:14px;color:var(--gray);line-height:1.8}
+.trinity-card .tag-list{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.trinity-card .tag{padding:4px 12px;border-radius:50px;font-size:11px;font-weight:500;background:rgba(255,255,255,0.05);color:var(--gray-d)}
+
+/* ===== Flywheel ===== */
+.flywheel{background:var(--bg2)}
+.flywheel-visual{display:flex;align-items:center;justify-content:center;gap:40px;margin:48px 0;flex-wrap:wrap}
+.flywheel-node{width:200px;padding:28px 20px;border-radius:16px;text-align:center;position:relative}
+.flywheel-node.root{background:linear-gradient(135deg,rgba(0,168,107,0.12),rgba(0,168,107,0.03));border:1px solid rgba(0,168,107,0.3)}
+.flywheel-node.vault{background:linear-gradient(135deg,rgba(212,175,55,0.12),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.3)}
+.flywheel-node .node-icon{font-size:36px;margin-bottom:12px}
+.flywheel-node h4{font-size:18px;font-weight:700;margin-bottom:6px}
+.flywheel-node p{font-size:12px;color:var(--gray-d)}
+.flywheel-arrow{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--gold);font-size:24px}
+.flywheel-arrow span{font-size:11px;color:var(--gray-d);max-width:100px;text-align:center}
+.flywheel-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:48px}
+.flywheel-step{padding:20px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);position:relative}
+.flywheel-step .step-num{position:absolute;top:-12px;left:20px;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#000;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.flywheel-step h5{font-size:14px;font-weight:700;margin:8px 0 6px;color:var(--gold-l)}
+.flywheel-step p{font-size:12px;color:var(--gray);line-height:1.6}
+
+/* ===== Mechanisms ===== */
+.mech-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+.mech-card{padding:36px 32px;border-radius:16px;background:var(--card);border:1px solid var(--card-border);transition:all .3s}
+.mech-card:hover{border-color:rgba(212,175,55,0.3);transform:translateY(-4px)}
+.mech-card .mech-head{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.mech-card .mech-num{font-size:40px;font-weight:900;background:linear-gradient(135deg,var(--gold-l),var(--gold-d));-webkit-background-clip:text;-webkit-text-fill-color:transparent;opacity:.6}
+.mech-card h3{font-size:20px;font-weight:700}
+.mech-card p{font-size:14px;color:var(--gray);line-height:1.8;margin-bottom:16px}
+.mech-card .formula{padding:14px 18px;border-radius:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.15);font-family:'Courier New',monospace;font-size:13px;color:var(--gold-l);text-align:center;margin:12px 0}
+.mech-card .feature-list{list-style:none;padding:0}
+.mech-card .feature-list li{font-size:13px;color:var(--gray);padding:6px 0 6px 24px;position:relative}
+.mech-card .feature-list li::before{content:'▸';position:absolute;left:0;color:var(--green)}
+
+/* ===== Reserve Asset ===== */
+.reserve{background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%)}
+.reserve-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.reserve-visual{position:relative;padding:40px}
+.reserve-circle{width:100%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(0,168,107,0.15) 0%,rgba(0,168,107,0.03) 50%,transparent 70%);display:flex;align-items:center;justify-content:center;position:relative;animation:rotate 30s linear infinite}
+@keyframes rotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.reserve-circle-inner{width:70%;aspect-ratio:1;border-radius:50%;border:2px dashed rgba(212,175,55,0.2);display:flex;align-items:center;justify-content:center;animation:rotate 20s linear infinite reverse}
+.reserve-center{text-align:center;animation:rotate 30s linear infinite}
+.reserve-center .rc-icon{font-size:48px;margin-bottom:8px}
+.reserve-center .rc-text{font-size:18px;font-weight:800;color:var(--gold-l)}
+.reserve-center .rc-sub{font-size:11px;color:var(--gray-d)}
+.reserve-points{position:absolute;inset:0}
+.reserve-point{position:absolute;width:100px;text-align:center}
+.reserve-point .rp-icon{font-size:24px;margin-bottom:4px}
+.reserve-point .rp-text{font-size:11px;color:var(--gray);font-weight:600}
+.reserve-content h2{font-size:36px;font-weight:800;margin-bottom:20px;line-height:1.2}
+.reserve-content h2 span{background:linear-gradient(135deg,var(--green-l),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.reserve-content > p{font-size:15px;color:var(--gray);margin-bottom:32px;line-height:1.8}
+.reserve-mechs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rm-item{padding:16px;border-radius:10px;background:rgba(0,168,107,0.05);border:1px solid rgba(0,168,107,0.15)}
+.rm-item h5{font-size:14px;font-weight:700;color:var(--green-l);margin-bottom:4px}
+.rm-item p{font-size:12px;color:var(--gray);line-height:1.6}
+.reserve-alloc{margin-top:28px;padding:20px;border-radius:12px;background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.15)}
+.reserve-alloc h5{font-size:14px;font-weight:700;color:var(--gold-l);margin-bottom:12px}
+.alloc-bars{display:flex;flex-direction:column;gap:10px}
+.alloc-bar{display:flex;align-items:center;gap:12px}
+.alloc-bar .ab-label{width:100px;font-size:12px;color:var(--gray)}
+.alloc-bar .ab-track{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden}
+.alloc-bar .ab-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold-l))}
+.alloc-bar .ab-pct{width:40px;font-size:12px;font-weight:700;color:var(--gold-l);text-align:right}
+
+/* ===== Tokenomics ===== */
+.tokenomics{background:var(--bg)}
+.tok-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start}
+.tok-visual{padding:20px}
+.tok-ring{position:relative;width:100%;max-width:360px;margin:0 auto;aspect-ratio:1}
+.tok-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.tok-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.tok-ring-center .trc-val{font-size:42px;font-weight:900;background:linear-gradient(135deg,var(--gold-l),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tok-ring-center .trc-label{font-size:13px;color:var(--gray-d);letter-spacing:2px}
+.tok-legend{display:flex;flex-direction:column;gap:12px;margin-top:32px}
+.tok-legend-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;background:var(--card);border:1px solid var(--card-border)}
+.tok-legend-item .tli-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.tok-legend-item .tli-text{flex:1;font-size:13px;color:var(--gray)}
+.tok-legend-item .tli-pct{font-size:14px;font-weight:700;color:var(--gold-l)}
+.tok-details h3{font-size:24px;font-weight:800;margin-bottom:24px}
+.tok-detail-card{padding:24px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);margin-bottom:16px}
+.tok-detail-card h4{font-size:16px;font-weight:700;color:var(--gold-l);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.tok-detail-card .tax-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tax-item{padding:14px;border-radius:8px;background:rgba(0,0,0,0.2);text-align:center}
+.tax-item .ti-val{font-size:24px;font-weight:800;color:var(--gold-l)}
+.tax-item .ti-label{font-size:11px;color:var(--gray-d);margin-top:2px}
+.tax-alloc{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.tax-alloc-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray)}
+.tax-alloc-item .tai-bar{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden}
+.tax-alloc-item .tai-fill{height:100%;border-radius:3px;background:var(--green)}
+.tax-alloc-item .tai-pct{width:36px;text-align:right;font-weight:700;color:var(--green-l);font-size:12px}
+
+/* ===== Roadmap ===== */
+.roadmap{background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%)}
+.rm-timeline{position:relative;padding-left:40px}
+.rm-timeline::before{content:'';position:absolute;left:15px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--gold),var(--green),transparent)}
+.rm-item{position:relative;margin-bottom:40px;padding:24px 28px;border-radius:12px;background:var(--card);border:1px solid var(--card-border)}
+.rm-item::before{content:'';position:absolute;left:-33px;top:28px;width:16px;height:16px;border-radius:50%;background:var(--gold);border:3px solid var(--bg);box-shadow:0 0 15px var(--glow-gold)}
+.rm-item.done::before{background:var(--green);box-shadow:0 0 15px var(--glow-green)}
+.rm-item .rm-phase{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.rm-item.done .rm-phase{color:var(--green-l)}
+.rm-item h4{font-size:18px;font-weight:700;margin-bottom:8px}
+.rm-item ul{list-style:none;padding:0}
+.rm-item ul li{font-size:13px;color:var(--gray);padding:4px 0 4px 20px;position:relative}
+.rm-item ul li::before{content:'○';position:absolute;left:0;color:var(--gold-d)}
+
+/* ===== Community ===== */
+.community{text-align:center;padding:100px 0}
+.community h2{font-size:36px;font-weight:800;margin-bottom:16px}
+.community p{font-size:16px;color:var(--gray);max-width:500px;margin:0 auto 40px}
+.community-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.community-link{width:64px;height:64px;border-radius:16px;background:var(--card);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;font-size:24px;transition:all .25s;cursor:pointer}
+.community-link:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 8px 30px var(--glow-gold)}
+
+/* ===== Footer ===== */
+.footer{border-top:1px solid rgba(212,175,55,0.1);padding:48px 0 32px;background:var(--bg2)}
+.footer-inner{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-brand p{font-size:13px;color:var(--gray-d);margin-top:12px;line-height:1.7;max-width:300px}
+.footer-col h5{font-size:14px;font-weight:700;color:var(--gold-l);margin-bottom:16px}
+.footer-col ul{list-style:none}
+.footer-col ul li{margin-bottom:10px}
+.footer-col ul li a{font-size:13px;color:var(--gray-d);transition:color .2s}
+.footer-col ul li a:hover{color:var(--gold-l)}
+.footer-bottom{border-top:1px solid rgba(255,255,255,0.05);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.footer-bottom p{font-size:12px;color:var(--gray-d2)}
+.disclaimer{font-size:11px;color:var(--gray-d2);line-height:1.7;margin-top:16px;max-width:800px}
+
+/* ===== Animations ===== */
+.reveal{opacity:0;transform:translateY(30px);transition:all .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ===== Responsive ===== */
+@media(max-width:900px){
+  .nav-links{display:none}
+  .mobile-toggle{display:flex}
+  .trinity-grid,.mech-grid,.flywheel-steps{grid-template-columns:1fr}
+  .reserve-layout,.tok-layout{grid-template-columns:1fr}
+  .hero-stats{grid-template-columns:repeat(2,1fr)}
+  .footer-inner{grid-template-columns:1fr 1fr}
+  .flywheel-visual{flex-direction:column}
+  .flywheel-arrow{transform:rotate(90deg)}
+}
+@media(max-width:600px){
+  .section{padding:60px 0}
+  .hero-stats{grid-template-columns:1fr 1fr}
+  .footer-inner{grid-template-columns:1fr}
+  .reserve-mechs{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Navbar ===== -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <img src="tvs-logo.png" alt="TVS Logo" style="height:52px;width:auto;border-radius:8px">
+    </a>
+    <div class="nav-links">
+      <a href="#about">关于</a>
+      <a href="#mechanism">机制</a>
+      <a href="#reserve">储备资产</a>
+      <a href="#tokenomics">代币经济</a>
+      <a href="#roadmap">路线图</a>
+    </div>
+    <button class="btn btn-gold">启动应用 →</button>
+    <div class="mobile-toggle" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge"><span class="dot"></span> 原生RWA · DeFi 3.0 · 发射平台 — 三重叙事合一</div>
+      <h1>以<span class="gold">只涨不跌</span>的TENDRIL为储备<br>打造<span class="green">DeFi 3.0</span>时代的价值发射协议</h1>
+      <p>TVS（藤昇）是藤蔓生态首个子币，以数学级只涨不跌的TENDRIL为底层储备资产，通过地板价托底、双向涡轮、IWO投资者保护等创新机制，构建原生RWA与发射平台的价值飞轮。</p>
+      <div class="hero-cta">
+        <button class="btn btn-gold btn-lg">购买 TVS</button>
+        <button class="btn btn-outline btn-lg">阅读白皮书</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-card">
+          <div class="stat-value">10亿</div>
+          <div class="stat-label">TVS 总供应量</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">3%</div>
+          <div class="stat-label">交易手续费（100%铸造TENDRIL）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">70%</div>
+          <div class="stat-label">地板价储备系数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">15%</div>
+          <div class="stat-label">季度回购销毁上限</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Trinity Narrative ===== -->
+<section class="section trinity" id="about">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-tag">Triple Narrative</span>
+      <h2 class="section-title">三重重大叙事，一站站稳</h2>
+      <p class="section-desc">TVS不是单一赛道的项目，而是原生RWA、DeFi 3.0、发射平台三条赛道的交汇点，每一条叙事都有真实机制支撑。</p>
+    </div>
+    <div class="trinity-grid">
+      <div class="trinity-card reveal">
+        <div class="trinity-icon green">🏦</div>
+        <h3>原生RWA</h3>
+        <p>TVS的储备资产TENDRIL不是链下国债或黄金，而是由真实资金铸造产生的"链上原生真实世界资产"。每一枚TENDRIL背后都有真实USDT储备，价值锚定动态生产力，而非静态资产。</p>
+        <div class="tag-list">
+          <span class="tag">真实资金铸造</span>
+          <span class="tag">无预挖无私募</span>
+          <span class="tag">链上完全透明</span>
+        </div>
+      </div>
+      <div class="trinity-card reveal">
+        <div class="trinity-icon gold">⚡</div>
+        <h3>DeFi 3.0</h3>
+        <p>第一代DeFi（Uniswap/Aave）解决了可编程金融，但留不住资金；第二代（Olympus/Curve）实现协议自有流动性，但通胀不可持续。TVS代表DeFi 3.0——原生RWA储备+地板价托底+双向涡轮，协议与用户利益完全一致。</p>
+        <div class="tag-list">
+          <span class="tag">协议自有流动性</span>
+          <span class="tag">通缩模型</span>
+          <span class="tag">利益一致</span>
+        </div>
+      </div>
+      <div class="trinity-card reveal">
+        <div class="trinity-icon mix">🚀</div>
+        <h3>发射平台代币</h3>
+        <p>Pump.fun/Pons证明了发射平台赛道的巨大潜力，但子币毕业率不足0.8%。TVS将"平台收入驱动"升级为"储备资产驱动"，将"回购销毁"升级为"地板价托底"，让每一个发射的子币都有真实价值支撑。</p>
+        <div class="tag-list">
+          <span class="tag">IWO永续发行</span>
+          <span class="tag">FUSE本金保护</span>
+          <span class="tag">一藤多币</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Value Flywheel ===== -->
+<section class="section flywheel">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-tag">Value Flywheel</span>
+      <h2 class="section-title">TENDRIL × TVS 双向涡轮</h2>
+      <p class="section-desc">TENDRIL是"根"，TVS是"干"。根扎得越深，干长得越高；干越繁荣，根越强壮。这不是零和博弈，是互相促进的价值飞轮。</p>
+    </div>
+    <div class="flywheel-visual reveal">
+      <div class="flywheel-node root">
+        <div class="node-icon">🌱</div>
+        <h4>TENDRIL</h4>
+        <p>底层储备资产<br>只涨不跌的根</p>
+      </div>
+      <div class="flywheel-arrow">
+        <span>储备托底</span>
+        ↓
+        <span>铸造增值</span>
+        ↑
+      </div>
+      <div class="flywheel-node vault">
+        <div class="node-icon">🛡️</div>
+        <h4>TVS</h4>
+        <p>上层发射协议<br>价值放大的干</p>
+      </div>
+    </div>
+    <div class="flywheel-steps">
+      <div class="flywheel-step reveal">
+        <div class="step-num">1</div>
+        <h5>TVS交易产生手续费</h5>
+        <p>每笔TVS交易收取3%手续费，100%用于铸造TENDRIL进入储备库，直接为TENDRIL创造持续买盘。</p>
+      </div>
+      <div class="flywheel-step reveal">
+        <div class="step-num">2</div>
+        <h5>TENDRIL需求增加→上涨</h5>
+        <p>持续铸造推高TENDRIL价格，储备库总价值同步增长。</p>
+      </div>
+      <div class="flywheel-step reveal">
+        <div class="step-num">3</div>
+        <h5>TVS地板价抬升</h5>
+        <p>地板价=(TENDRIL储备价值÷TVS流通量)×70%，储备增值直接抬升地板。</p>
+      </div>
+      <div class="flywheel-step reveal">
+        <div class="step-num">4</div>
+        <h5>TVS上涨→更多交易</h5>
+        <p>地板价持续抬升吸引更多用户和交易，涡轮自我强化，越转越快。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Core Mechanisms ===== -->
+<section class="section" id="mechanism">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-tag">Core Mechanisms</span>
+      <h2 class="section-title">四大核心机制，构建价值护城河</h2>
+      <p class="section-desc">每一个机制都写死在不可升级的智能合约中，不是团队承诺，是代码保证。</p>
+    </div>
+    <div class="mech-grid">
+      <div class="mech-card reveal">
+        <div class="mech-head">
+          <div class="mech-num">01</div>
+          <h3>地板价托底</h3>
+        </div>
+        <p>TVS的地板价由TENDRIL储备库托底，公式写死在合约中，无人可篡改。TENDRIL只涨不跌，所以TVS地板价只涨不跌。</p>
+        <div class="formula">地板价 = (TENDRIL储备总价值 ÷ TVS流通量) × 70%</div>
+        <ul class="feature-list">
+          <li>市场价跌破地板价时，套利者自动买入推回</li>
+          <li>TENDRIL上涨→储备增值→地板价自动抬升</li>
+          <li>不是"承诺"，是"数学"——合约写死，不可更改</li>
+        </ul>
+      </div>
+      <div class="mech-card reveal">
+        <div class="mech-head">
+          <div class="mech-num">02</div>
+          <h3>双池架构</h3>
+        </div>
+        <p>TVS采用两个独立流动性池协同运行，一个托底，一个发现价格，通过套利者自动平衡。</p>
+        <div class="formula">TENDRIL/TVS池（地板） + U/TVS池（天花板）</div>
+        <ul class="feature-list">
+          <li>TENDRIL/TVS池：锚定地板价，储备托底</li>
+          <li>U/TVS池：市场价格发现，外部用户自由买卖</li>
+          <li>套利者自动拉平两池价格，不触发母池30%手续费</li>
+        </ul>
+      </div>
+      <div class="mech-card reveal">
+        <div class="mech-head">
+          <div class="mech-num">03</div>
+          <h3>IWO + FUSE 投资者保护</h3>
+        </div>
+        <p>TVS首创IWO（首次永续发行）模式和FUSE模型，从机制层面保护投资者，避免传统发射平台的"一次性砸盘"和"项目方跑路"风险。</p>
+        <div class="formula">IWO锁仓竞价 + NFT份额 + 按秒解锁 + FUSE 1:1赎回</div>
+        <ul class="feature-list">
+          <li>IWO：用户基于锁仓时间竞价获得份额，份额是可交易NFT，代币按秒解锁</li>
+          <li>FUSE：质押稳定币获得CST，项目方未达预期时可1:1赎回本金</li>
+          <li>从机制上杜绝"科学家抢跑"和"项目方砸盘"</li>
+        </ul>
+      </div>
+      <div class="mech-card reveal">
+        <div class="mech-head">
+          <div class="mech-num">04</div>
+          <h3>退出即建设</h3>
+        </div>
+        <p>传统项目中，退出=砸盘=伤害系统。在藤蔓生态中，通过TVS中转退出TENDRIL，手续费从30%降至约3%，且每一次退出都在强化系统。</p>
+        <div class="formula">TENDRIL → TVS → U ｜ 手续费 30% → 约3%</div>
+        <ul class="feature-list">
+          <li>TENDRIL锁入TENDRIL/TVS池 → 地板价抬升</li>
+          <li>TVS卖出触发销毁 → 流通量减少 → 稀缺性增加</li>
+          <li>每一次"聪明的退出"，都在让系统变得更强大</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Reserve Asset ===== -->
+<section class="section reserve" id="reserve">
+  <div class="container">
+    <div class="reserve-layout">
+      <div class="reserve-visual reveal">
+        <div class="reserve-circle">
+          <div class="reserve-circle-inner">
+            <div class="reserve-center">
+              <div class="rc-icon">🌱</div>
+              <div class="rc-text">TENDRIL</div>
+              <div class="rc-sub">原生RWA储备</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="reserve-content reveal">
+        <span class="section-tag">Reserve Asset</span>
+        <h2>为什么 <span>TENDRIL</span><br>是最强储备资产？</h2>
+        <p>TENDRIL不是普通的加密货币，它是一种与真实生产力挂钩的原生RWA。没有预挖、没有私募、没有团队预留，完全通过真实资金铸造产生。每一枚TENDRIL背后都有真实USDT支撑。</p>
+        <div class="reserve-mechs">
+          <div class="rm-item">
+            <h5>卖一销二</h5>
+            <p>卖出1000枚自动销毁2000枚，流通量双倍通缩</p>
+          </div>
+          <div class="rm-item">
+            <h5>20%回流底池</h5>
+            <p>卖出手续费20%回流LP底池，卖出即创造买盘</p>
+          </div>
+          <div class="rm-item">
+            <h5>底池不等式</h5>
+            <p>LP底池U价值始终大于流通代币总价值，数学级兑付</p>
+          </div>
+          <div class="rm-item">
+            <h5>权限永久丢弃</h5>
+            <p>合约无管理员权限，无人可改规则、挪资金</p>
+          </div>
+        </div>
+        <div class="reserve-alloc">
+          <h5>📊 TENDRIL 铸造资金分配</h5>
+          <div class="alloc-bars">
+            <div class="alloc-bar">
+              <span class="ab-label">池子深度</span>
+              <div class="ab-track"><div class="ab-fill" style="width:60%"></div></div>
+              <span class="ab-pct">60%</span>
+            </div>
+            <div class="alloc-bar">
+              <span class="ab-label">USDT分红</span>
+              <div class="ab-track"><div class="ab-fill" style="width:15%"></div></div>
+              <span class="ab-pct">15%</span>
+            </div>
+            <div class="alloc-bar">
+              <span class="ab-label">回购销毁</span>
+              <div class="ab-track"><div class="ab-fill" style="width:10%"></div></div>
+              <span class="ab-pct">10%</span>
+            </div>
+            <div class="alloc-bar">
+              <span class="ab-label">生态发展</span>
+              <div class="ab-track"><div class="ab-fill" style="width:15%"></div></div>
+              <span class="ab-pct">15%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Tokenomics ===== -->
+<section class="section tokenomics" id="tokenomics">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-tag">Tokenomics</span>
+      <h2 class="section-title">TVS 代币经济学</h2>
+      <p class="section-desc">总量10亿枚，通缩模型，持续回购销毁，5%平台利润分配给持有者。</p>
+    </div>
+    <div class="tok-layout">
+      <div class="tok-visual reveal">
+        <div class="tok-ring">
+          <svg viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="24"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#d4af37" stroke-width="24" stroke-dasharray="402 502" stroke-dashoffset="0"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#00a86b" stroke-width="24" stroke-dasharray="100 502" stroke-dashoffset="-402"/>
+          </svg>
+          <div class="tok-ring-center">
+            <div class="trc-val">10亿</div>
+            <div class="trc-label">TVS TOTAL SUPPLY</div>
+          </div>
+        </div>
+        <div class="tok-legend">
+          <div class="tok-legend-item">
+            <div class="tli-dot" style="background:#d4af37"></div>
+            <span class="tli-text">Flap买断（含私募、LP、团队、营销）</span>
+            <span class="tli-pct">80%</span>
+          </div>
+          <div class="tok-legend-item">
+            <div class="tli-dot" style="background:#00a86b"></div>
+            <span class="tli-text">生态储备（多签钱包，未流通）</span>
+            <span class="tli-pct">20%</span>
+          </div>
+        </div>
+      </div>
+      <div class="tok-details reveal">
+        <h3>交易税与分配</h3>
+        <div class="tok-detail-card">
+          <h4>💰 交易税率</h4>
+          <div class="tax-grid">
+            <div class="tax-item">
+              <div class="ti-val">3%</div>
+              <div class="ti-label">每笔交易手续费</div>
+            </div>
+            <div class="tax-item">
+              <div class="ti-val">100%</div>
+              <div class="ti-label">用于铸造TENDRIL</div>
+            </div>
+          </div>
+        </div>
+        <div class="tok-detail-card">
+          <h4>📊 税收分配（每笔交易）</h4>
+          <div class="tax-alloc">
+            <div class="tax-alloc-item">
+              <span style="width:140px">铸造TENDRIL进储备库</span>
+              <div class="tai-bar"><div class="tai-fill" style="width:100%;background:linear-gradient(90deg,#d4af37,#f0d78c)"></div></div>
+              <span class="tai-pct" style="color:#d4af37">100%</span>
+            </div>
+          </div>
+          <p style="font-size:13px;color:var(--gray);margin-top:14px;line-height:1.7">每笔TVS交易收取3%手续费，<strong style="color:var(--gold-l)">100%用于铸造TENDRIL进入储备库</strong>。这意味着TVS的每一次交易都在直接为TENDRIL创造买盘，推动储备增值，进而抬升TVS地板价——双向涡轮的核心燃料。</p>
+        </div>
+        <div class="tok-detail-card">
+          <h4>🔥 通缩与分红机制</h4>
+          <ul class="feature-list" style="margin:0">
+            <li>季度回购销毁：最高15%的季度收入用于回购销毁TVS</li>
+            <li>平台利润分红：5%的平台利润分配给TVS持有者</li>
+            <li>交易税全量铸造：每笔交易3%手续费100%用于铸造TENDRIL，持续为储备库增值，涡轮自我强化</li>
+            <li>Flap毕业机制：募集达标后自动毕业，剩余代币自动添加流动性并永久锁定</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Roadmap ===== -->
+<section class="section roadmap" id="roadmap">
+  <div class="container">
+    <div class="section-header center reveal">
+      <span class="section-tag">Roadmap</span>
+      <h2 class="section-title">发展路线图</h2>
+      <p class="section-desc">从TVS上线到一藤多币生态成熟，每一步都有明确目标。</p>
+    </div>
+    <div class="rm-timeline">
+      <div class="rm-item done reveal">
+        <div class="rm-phase">Q3 2026 · 已完成</div>
+        <h4>🌱 TENDRIL 协议启动</h4>
+        <ul>
+          <li>藤蔓协议主网上线，原生RWA铸造机制启动</li>
+          <li>卖一销二、底池不等式、权限丢弃等核心机制部署</li>
+          <li>社区共识建立，持币地址持续增长</li>
+        </ul>
+      </div>
+      <div class="rm-item reveal">
+        <div class="rm-phase">Q3 2026 · 进行中</div>
+        <h4>🚀 TVS 上线与首发</h4>
+        <ul>
+          <li>TVS（藤昇）正式上线Uniswap V3，Flap发射平台首发</li>
+          <li>双池架构部署，地板价机制启动，双向涡轮开始运转</li>
+          <li>IWO首次永续发行模式上线</li>
+          <li>社区深度共识会，生态伙伴拓展</li>
+        </ul>
+      </div>
+      <div class="rm-item reveal">
+        <div class="rm-phase">Q4 2026</div>
+        <h4>⚡ FUSE模型与首个子币发射</h4>
+        <ul>
+          <li>FUSE本金保护模型上线，质押稳定币获得CST</li>
+          <li>藤蔓生态第二个子币发射，验证"一藤多币"模式</li>
+          <li>TVS季度回购销毁首次执行</li>
+          <li>多链部署评估（BSC/罗宾汉链/以太坊）</li>
+        </ul>
+      </div>
+      <div class="rm-item reveal">
+        <div class="rm-phase">Q1 2027</div>
+        <h4>🌿 生态扩展与多链部署</h4>
+        <ul>
+          <li>多链部署完成，TVS跨链桥上线</li>
+          <li>发射平台开放，第三方项目可通过TVS生态发射</li>
+          <li>平台利润分红机制首次执行</li>
+          <li>机构合作与合规框架建立</li>
+        </ul>
+      </div>
+      <div class="rm-item reveal">
+        <div class="rm-phase">Q2 2027+</div>
+        <h4>🏛️ 一藤多币生态成熟</h4>
+        <ul>
+          <li>藤蔓生态子币数量达到10+，TVS作为枢纽资产价值凸显</li>
+          <li>原生RWA储备规模突破里程碑</li>
+          <li>DeFi 3.0标准制定者地位确立</li>
+          <li>DAO治理全面启动，社区自治</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Community ===== -->
+<section class="community">
+  <div class="container">
+    <div class="reveal">
+      <h2>加入藤蔓社区</h2>
+      <p>与全球社区成员一起，见证原生RWA与DeFi 3.0的未来。藤蔓新生，一起向上。</p>
+      <div class="community-links">
+        <div class="community-link" title="Twitter/X">𝕏</div>
+        <div class="community-link" title="Telegram">✈️</div>
+        <div class="community-link" title="Discord">💬</div>
+        <div class="community-link" title="Medium">📝</div>
+        <div class="community-link" title="GitHub">🐙</div>
+      </div>
+      <div style="margin-top:40px">
+        <button class="btn btn-gold btn-lg">购买 TVS →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo">
+          <img src="tvs-logo.png" alt="TVS Logo" style="height:56px;width:auto;border-radius:8px">
+        </div>
+        <p>首个以原生RWA为储备的DeFi 3.0发射协议。以只涨不跌的TENDRIL为根，构建一藤多币的价值生态。</p>
+      </div>
+      <div class="footer-col">
+        <h5>产品</h5>
+        <ul>
+          <li><a href="#">发射平台</a></li>
+          <li><a href="#">IWO发行</a></li>
+          <li><a href="#">FUSE质押</a></li>
+          <li><a href="#">双池交易</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>资源</h5>
+        <ul>
+          <li><a href="#">白皮书</a></li>
+          <li><a href="#">合约审计</a></li>
+          <li><a href="#">开发者文档</a></li>
+          <li><a href="#">品牌资源</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>关于</h5>
+        <ul>
+          <li><a href="#">团队</a></li>
+          <li><a href="#">合作伙伴</a></li>
+          <li><a href="#">联系我们</a></li>
+          <li><a href="#">品牌资源</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 TVS (Tendril Vault). All rights reserved.</p>
+      <p>藤蔓之上，开创未来</p>
+    </div>
+    <div class="disclaimer">
+      ⚠️ 风险提示：加密货币投资具有高波动性和高风险性，可能导致本金全部损失。本网站内容仅供信息参考，不构成任何投资建议、要约或招揽。TVS和TENDRIL的机制描述基于项目公开资料，实际运行以链上合约为准。过去的表现不代表未来结果。请根据自身风险承受能力谨慎决策，切勿投资超出承受能力的资金。
+    </div>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal animation
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// Navbar scroll effect
+window.addEventListener('scroll',()=>{
+  const nav=document.getElementById('navbar');
+  if(window.scrollY>50){ nav.style.background='rgba(10,10,10,0.95)'; nav.style.boxShadow='0 4px 30px rgba(0,0,0,0.3)'; }
+  else{ nav.style.background='rgba(10,10,10,0.85)'; nav.style.boxShadow='none'; }
+});
+</script>
+</body>
+</html>
