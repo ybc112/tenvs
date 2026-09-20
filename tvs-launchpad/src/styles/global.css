@@ -344,10 +344,12 @@ textarea.input { min-height: 96px; resize: vertical; }
 .nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 .nav-dropdown {
+  display: none;
   flex-direction: column;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   background: rgba(10, 10, 10, 0.98);
 }
+.nav-dropdown.open { display: flex; }
 .nav-drop-item {
   display: flex;
   align-items: baseline;
@@ -1042,4 +1044,12 @@ textarea.input { min-height: 96px; resize: vertical; }
   .info-quad { grid-template-columns: 1fr; }
   .colophon, .footer-inner { grid-template-columns: 1fr; }
   .reserve-mechs { grid-template-columns: 1fr; }
+  .nav-inner { height: 60px; gap: 10px; padding: 0 14px; }
+  .brand { gap: 8px; min-width: 0; }
+  .brand img { height: 30px; }
+  .brand-name { font-size: 16px; letter-spacing: 0.5px; white-space: nowrap; }
+  .brand-sub { display: none; }
+  .nav-mobile { gap: 8px; }
+  .nav-mobile .wallet-tag { font-size: 10px; padding: 3px 8px; }
+  .nav-mobile .btn-sm { padding: 5px 10px; font-size: 11px; }
 }
