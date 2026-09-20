@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Launch from "./pages/Launch";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import Swap from "./pages/Swap";
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -27,6 +28,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/launch" element={<Launch />} />
+            <Route path="/swap" element={<Swap />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/project/:address" element={<ProjectDetail />} />
           </Routes>

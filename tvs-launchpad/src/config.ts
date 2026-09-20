@@ -35,5 +35,15 @@ export const config = {
 export const EXPLORER_BASE =
   config.chainId === 97 ? "https://testnet.bscscan.com" : "https://bscscan.com";
 
+/**
+ * TENDRIL ⇄ TVS 直连互换（直接调用 PancakeSwap V2 Router，固定路径 [TENDRIL, TVS] / [TVS, TENDRIL]）
+ */
+export const swapConfig = {
+  router: "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+  tendril: "0xb1afdfd850da168f2cc9f742e11cdda5273973d2",
+  tvs: "0x221f7336711cd6eb72d8c897a0d185a12a357777",
+  pair: "0x73b667a81bd62d266fdb58a593751b56d1c0ecba",
+};
+
 export const fmtAddress = (addr: string) =>
   addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "";
