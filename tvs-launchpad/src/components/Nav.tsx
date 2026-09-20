@@ -30,7 +30,7 @@ export function WalletButton() {
 
 const LINKS = [
   { to: "/", label: "首页", end: true },
-  { to: "/swap", label: "闪兑", end: false },
+  { to: "/swap", label: "Swap", end: false },
   { to: "/launch", label: "发射台", end: false },
   { to: "/projects", label: "已发射代币", end: false },
 ];
