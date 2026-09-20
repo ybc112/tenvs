@@ -46,7 +46,7 @@ export const swapConfig = {
   /** TvsFeeSwap 平台费网关（3% 通道费 → feeRecipient） */
   feeSwap: "0xc7823820230259810fD8cd19a8390DBB430593e8",
   /** 平台费收款钱包（3% 进这里） */
-  feeRecipient: "0xc5292218326bb159030664065278e0eba9852e5f",
+  feeRecipient: "0x21148e8a732aad6a22aaa50db1ef4a61fd8df1be",
   /** 平台通道费率（bp） */
   feeBps: 300,
 };
