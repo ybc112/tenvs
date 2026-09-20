@@ -3,10 +3,10 @@
  *
  * 链上地址与后端地址统一收口在这里。
  * TVS 专属合约已于 BSC 主网部署（kimiMint 发射模板）：
- *   Factory:        0xf0B745dc06C5b69950De5ab4461f777b9FD9fDAa
- *   TokenDeployer:  0xCF0BB26d251A0c2035ce2CB8C1b2972AA0cA0363
- *   VaultDeployer:  0x7C8978f478eC77d2fAf1390268fC161b7deDFcCB
- *   FeeRecipient:   0x25a39709B476B380a75b11521893Db0cbA52b39B（平台税临时收款，后续可换）
+ *   Factory:        0xfBe16d5d3efA0939548ad22D312f35135B7B2507
+ *   TokenDeployer:  0x112C85060d44685494542A49fF62D4d8f019B4c0
+ *   VaultDeployer:  0xb489A23d84124eBF7CC5963F331E8f338a1726E9
+ *   FeeRecipient:   0xc5292218326bb159030664065278e0eba9852e5f（平台税收款地址）
  *   RequiredSuffix: 0xa86b ｜ CreationFee: 0.005 BNB
  */
 export const config = {
@@ -15,7 +15,7 @@ export const config = {
   /** 是否已部署 TVS 专属合约。false = 占位模式，前端禁用发币/铸造动作 */
   contractsReady: true,
   /** TVS 专属 KimiMintLaunchFactory（BSC 主网） */
-  factoryAddress: "0xf0B745dc06C5b69950De5ab4461f777b9FD9fDAa",
+  factoryAddress: "0xfBe16d5d3efA0939548ad22D312f35135B7B2507",
   rpcUrl: "https://bsc.publicnode.com",
   /** 后端地址。留空 = 同源（dev 走 vite proxy /api；生产走反向代理） */
   backendUrl: "",
