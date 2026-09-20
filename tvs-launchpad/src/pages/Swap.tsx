@@ -4,7 +4,7 @@ import { useWallet } from "../wallet";
 import { useToast } from "../components/Toast";
 import {
   readTendril, readTvs, readPair, readRouter, pathFor, applySlippage, deadline20m,
-  ERC20_ABI, PAIR_ABI, ROUTER_ABI, TVS_STATES,
+  ERC20_ABI, PAIR_ABI, ROUTER_ABI, FEE_SWAP_ABI, feeAmount, TVS_STATES,
 } from "../lib/swap";
 import { swapConfig, config, EXPLORER_BASE } from "../config";
 
@@ -130,15 +130,16 @@ export default function Swap() {
     if (!inAmt || Number(inAmt) <= 0 || (tab !== "buy" && tab !== "sell")) return;
     try {
       const amountIn = ethers.parseEther(String(inAmt));
-      const amounts = await router.getAmountsOut(amountIn, pathFor(buy));
+      const swapIn = amountIn - feeAmount(amountIn); // 先扣 3% 平台费，余 97% 进池
+      const amounts = await router.getAmountsOut(swapIn, pathFor(buy));
       const out = amounts[1] as bigint;
       const min = applySlippage(out, slippage);
       setOutAmt(fmt(out));
-      setMinOut(`最低获得: ${fmt(min)}`);
+      setMinOut(`最低获得(含3%平台费): ${fmt(min)}`);
       setRateLine(
         buy
-          ? `1 TENDRIL ≈ ${fmt(Number(out) / Number(amountIn), 6)} TVS`
-          : `1 TVS ≈ ${fmt(Number(out) / Number(amountIn), 6)} TENDRIL`,
+          ? `1 TENDRIL ≈ ${fmt(Number(out) / Number(amountIn), 6)} TVS · 含 3% 平台费`
+          : `1 TVS ≈ ${fmt(Number(out) / Number(amountIn), 6)} TENDRIL · 含 3% 平台费`,
       );
     } catch (e) {
       setMinOut(`报价失败: ${(e as { shortMessage?: string }).shortMessage || (e as Error).message}`);
@@ -192,11 +193,11 @@ export default function Swap() {
     setLiqT(""); setLiqV(""); setLiqHint(""); setLiqLp(""); setLpHint("");
   }, [tab]);
 
-  const approve = async (token: Contract, need: bigint) => {
-    const allowance = (await token.allowance(account!, swapConfig.router)) as bigint;
+  const approve = async (token: Contract, need: bigint, spender: string = swapConfig.router) => {
+    const allowance = (await token.allowance(account!, spender)) as bigint;
     if (allowance < need) {
       setAuthHint("授权中…");
-      const tx = await token.approve(swapConfig.router, ethers.MaxUint256);
+      const tx = await token.approve(spender, ethers.MaxUint256);
       await tx.wait();
       setAuthHint("授权完成 ✓");
     }
@@ -225,19 +226,20 @@ export default function Swap() {
   const doSwap = () =>
     run(async () => {
       const amountIn = ethers.parseEther(String(inAmt));
-      const amounts = await router.getAmountsOut(amountIn, pathFor(buy));
+      const swapIn = amountIn - feeAmount(amountIn); // 与报价一致：先扣 3% 平台费
+      const amounts = await router.getAmountsOut(swapIn, pathFor(buy));
       const min = applySlippage(amounts[1] as bigint, slippage);
       const token = new Contract(buy ? swapConfig.tendril : swapConfig.tvs, ERC20_ABI, signer!) as unknown as Contract;
-      await approve(token, amountIn);
-      const sRouter = new Contract(swapConfig.router, ROUTER_ABI, signer!) as unknown as {
-        swapExactTokensForTokensSupportingFeeOnTransferTokens: (a: bigint, b: bigint, p: string[], to: string, d: number) => Promise<{ hash: string; wait: () => Promise<void> }>;
+      await approve(token, amountIn, swapConfig.feeSwap); // 授权给 FeeSwap（平台费网关）
+      const sFeeSwap = new Contract(swapConfig.feeSwap, FEE_SWAP_ABI, signer!) as unknown as {
+        swapExactTokensForTokens: (a: bigint, b: bigint, p: string[], to: string, d: number) => Promise<{ hash: string; wait: () => Promise<void> }>;
       };
-      const tx = await sRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+      const tx = await sFeeSwap.swapExactTokensForTokens(
         amountIn, min, pathFor(buy), account!, deadline20m(),
       );
       await tx.wait();
       return { hash: tx.hash };
-    }, `${buy ? "买入" : "卖出"} TVS 成功 ✓`);
+    }, `${buy ? "买入" : "卖出"} TVS 成功 ✓（3% 平台费已收取）`);
 
   const doAddLiq = () =>
     run(async () => {
@@ -306,9 +308,9 @@ export default function Swap() {
   };
 
   const actionLabel = !account ? "连接钱包后开始" : tab === "buy" ? "买入 TVS" : tab === "sell" ? "卖出 TVS" : tab === "liqadd" ? "添加流动性" : "移除流动性";
-  const warn = pool?.registered ? { danger: true, text: `直连池已被 TVS 登记进 pools，TVS 侧将扣税（当前买 ${pool.buyTaxPct}% / 卖 ${pool.sellTaxPct}%）。` }
-    : pool && pool.stateNum === 2 ? { danger: false, text: "TVS 处于 TaxEnforcedAntiFarmer 阶段：直连池未登记，当前互换 / 加池 / 移除均免税；若项目方把直连池登记进 pools，TVS 侧将开始收 3% 税。" }
-    : { danger: false, text: "当前经直连池互换免税 —— 直连池未在 TVS pools 登记，且不经过 TENDRIL 的 USDT 主池。" };
+  const warn = pool?.registered
+    ? { danger: true, text: `⚠ 直连池已被 TVS 登记进 pools：TVS 侧将叠加代币税（当前买 ${pool.buyTaxPct}% / 卖 ${pool.sellTaxPct}%），与平台 3% 通道费同时收取。` }
+    : { danger: false, text: "直连池两端代币税均不触发（TENDRIL 30% 仅对 USDT 主池、TVS 3% 仅对登记池）。本平台另收取 3% 通道费进入平台钱包，与代币税无关。" };
 
   return (
     <section className="container page" style={{ paddingTop: 48 }}>
@@ -320,9 +322,10 @@ export default function Swap() {
       <h1 style={{ marginBottom: 18 }}>
         TENDRIL <em className="em-gold">⇄</em> TVS
       </h1>
-      <p className="serif" style={{ color: "var(--gray)", fontSize: 16, maxWidth: 640, marginBottom: 40 }}>
-        直连 PancakeSwap V2 Router，固定路径 <span className="mono" style={{ color: "var(--gold-l)" }}>[TENDRIL, TVS] / [TVS, TENDRIL]</span>，
-        老币新币同池互换，当前经直连池免税。
+      <p className="serif" style={{ color: "var(--gray)", fontSize: 16, maxWidth: 680, marginBottom: 40 }}>
+        直连 PancakeSwap V2 Router，固定路径 <span className="mono" style={{ color: "var(--gold-l)" }}>[TENDRIL, TVS] / [TVS, TENDRIL]</span>。
+        本平台收取 <b style={{ color: "var(--gold-l)" }}>3% 通道费（进出双向）</b>进入平台钱包，剩余 97% 走同一个直连池；
+        池子与流动性完全不动，直连池两端代币税均不触发。
       </p>
 
       <div className="swap-layout">
@@ -353,7 +356,7 @@ export default function Swap() {
                   <span className="token-pill">{inToken}</span>
                 </div>
                 <div className="io-sub">
-                  <span className="badge-free">免税直换</span>
+                  <span className="badge-free fee">3% 平台费</span>
                   <button className="link-btn" onClick={() => void handleMax()}>MAX</button>
                 </div>
               </div>
@@ -468,6 +471,8 @@ export default function Swap() {
                 {pool ? (pool.registered ? "已登记 — 会征税 ⚠" : "未登记 — 免税") : "--"}
               </b></div>
               <div className="dl-row"><span>老币 30% 卖税</span><b className="mono" style={{ color: "var(--gray-d)" }}>仅 USDT 主池生效</b></div>
+              <div className="dl-row"><span>平台通道费</span><b className="mono" style={{ color: "var(--gold-l)" }}>3% · 进出双向</b></div>
+              <div className="dl-row"><span>平台钱包</span><b className="mono" style={{ color: "var(--gold-l)" }}>{addrS(swapConfig.feeRecipient)}</b></div>
               <div className="dl-row"><span>网络</span><b className="mono">BSC Mainnet · 56</b></div>
             </div>
           </div>

@@ -43,6 +43,12 @@ export const swapConfig = {
   tendril: "0xb1afdfd850da168f2cc9f742e11cdda5273973d2",
   tvs: "0x221f7336711cd6eb72d8c897a0d185a12a357777",
   pair: "0x73b667a81bd62d266fdb58a593751b56d1c0ecba",
+  /** TvsFeeSwap 平台费网关（3% 通道费 → feeRecipient） */
+  feeSwap: "0xc7823820230259810fD8cd19a8390DBB430593e8",
+  /** 平台费收款钱包（3% 进这里） */
+  feeRecipient: "0xc5292218326bb159030664065278e0eba9852e5f",
+  /** 平台通道费率（bp） */
+  feeBps: 300,
 };
 
 export const fmtAddress = (addr: string) =>

@@ -30,6 +30,21 @@ export const TVS_STATE_ABI = [
   "function pools(address) view returns (bool)",
 ];
 
+/** TvsFeeSwap 平台费网关 ABI（swap 时先扣 3% 给 feeRecipient，97% 走 Router 直连池） */
+export const FEE_SWAP_ABI = [
+  "function swapExactTokensForTokens(uint256,uint256,address[],address,uint256) returns (uint256)",
+  "function feeRecipient() view returns (address)",
+  "function feeBps() view returns (uint256)",
+];
+
+/** 平台通道费率（bp），与合约 feeBps 一致 */
+export const PLATFORM_FEE_BPS = 300;
+
+/** 平台费占用量 = amountIn × feeBps / 10000 */
+export function feeAmount(input: bigint): bigint {
+  return (input * BigInt(PLATFORM_FEE_BPS)) / 10000n;
+}
+
 /** TVS 税制状态枚举 */
 export const TVS_STATES = ["BondingCurve", "Migrating", "TaxEnforcedAntiFarmer", "TaxEnforced", "TaxFree"];
 
