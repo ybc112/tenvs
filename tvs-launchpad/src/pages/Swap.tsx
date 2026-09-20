@@ -20,7 +20,7 @@ interface PoolInfo {
   registered: boolean;
 }
 
-const SLIPS = [0.5, 1, 3, 5];
+const SLIPS = [0.1, 0.5, 1, 3];
 
 const emptyPool: PoolInfo = {
   resT: 0n, resV: 0n, price: 0, stateNum: 0, buyTaxPct: 0, sellTaxPct: 0, registered: false,
@@ -41,7 +41,7 @@ export default function Swap() {
   const toast = useToast();
 
   const [tab, setTab] = useState<Tab>("buy");
-  const [slippage, setSlippage] = useState(0.5);
+  const [slippage, setSlippage] = useState(0.1);
   const [pool, setPool] = useState<PoolInfo | null>(null);
   const [ball, setBall] = useState<{ t: bigint | null; v: bigint | null; lp: bigint | null }>({ t: null, v: null, lp: null });
   const [inAmt, setInAmt] = useState("");
