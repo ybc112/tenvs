@@ -1,0 +1,17 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 800
+# 说明：不设全局 gas_limit（会误伤测试基座的大量 setUp 写入）。
+# BSC 单笔上限 16,777,216（BEP-652）由 `forge test --gas-report` 的
+# 单函数 max gas 逐条核验，所有写路径见审计报告。
+
+[profile.default.fuzz]
+runs = 256
+
+[rpc_endpoints]
+bsc = "https://bsc-dataseed.bnbchain.org"
+bsc_testnet = "https://data-seed-prebsc-1-s1.bnbchain.org:8545"

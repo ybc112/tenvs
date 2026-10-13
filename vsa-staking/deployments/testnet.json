@@ -1,0 +1,40 @@
+{
+  "network": "BSC Testnet",
+  "chainId": 97,
+  "deployedAt": "2026-10-13",
+  "deployer": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
+  "daySeconds": 60,
+  "contracts": {
+    "MockTVS": "0x29965c7a677b7bb762915b3c6df0cea65dd654dc",
+    "MockVSA": "0xe5091a69c88d301BeBCf18Bbc9Bd0E782A132eA7",
+    "VSAStaking": "0xD672F9f609D81EAB3d1965Ae52095eaae227a8fa"
+  },
+  "distributor": {
+    "script": "script/DistributorDeploy.s.sol",
+    "token": "0x28e1ec018dbc306cd57da27f412b9d4f1b4b6d15",
+    "TokenDistributor": "0x7fb0de501ea0d51b99705b95885ebf1ffd616de5",
+    "scheduleCount": 5,
+    "allocated": "1000000e18",
+    "schedules": [
+      { "id": 0, "role": "市值多签", "beneficiary": "0xa80F329Fd36b9c2DA6dEC86d1df1E518500A9123", "total": "300000e18", "tgeBps": 2000, "cliffDays": 30, "linearDays": 365 },
+      { "id": 1, "role": "LP多签", "beneficiary": "0x6e5Ed612Fc7B054c28a3d2C1aC92eeB098EAD7d5", "total": "200000e18", "tgeBps": 3000, "cliffDays": 0, "linearDays": 180 },
+      { "id": 2, "role": "社区激励多签", "beneficiary": "0x227ea5869d11cC683BA9B43F8BC10278B210Ff3f", "total": "250000e18", "tgeBps": 1000, "cliffDays": 90, "linearDays": 730 },
+      { "id": 3, "role": "商学院多签", "beneficiary": "0x6e5Ed612Fc7B054c28a3d2C1aC92eeB098EAD7d5", "total": "150000e18", "tgeBps": 1000, "cliffDays": 90, "linearDays": 730 },
+      { "id": 4, "role": "质押多签", "beneficiary": "0x72f8637eC6519702B99a22Ec6F893FB3822dD213", "total": "100000e18", "tgeBps": 0, "cliffDays": 0, "linearDays": 730 }
+    ],
+    "owner": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
+    "pendingOwner": "0xaBce72802F9d85CdB45063057E079ce6AbdD7812",
+    "ownerNote": "社区自治核心多签（测试网未部署 Safe），acceptOwnership 未执行，owner 由部署钱包代持"
+  },
+  "config": {
+    "taxBps": 500,
+    "taxExemptStaking": true,
+    "rewardPool": "1000000e18",
+    "bonusPool": "100000e18",
+    "owner": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
+    "pendingOwner": "0x72f8637ec6519702b99a22ec6f893fb3822dd213",
+    "ownerNote": "质押多签在测试网未部署，acceptOwnership 未执行，owner 由部署钱包代持"
+  },
+  "script": "script/TestnetDeploy.s.sol",
+  "notes": "DAY_SECONDS=60 加速档：30 天档=30 分钟，90 天锁仓=90 分钟，10 年曲线≈25 天。主网部署必须用 script/Deploy.s.sol 且 DAY_SECONDS=86400"
+}
