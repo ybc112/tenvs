@@ -32,6 +32,8 @@ const LINKS = [
   { to: "/", label: "首页", end: true },
   { to: "/swap", label: "Swap", end: false },
   { to: "/launch", label: "发射台", end: false },
+  { to: "/stake", label: "VSA 质押", end: false },
+  { to: "/distribution", label: "代币分发", end: false },
   { to: "/projects", label: "已发射代币", end: false },
 ];
 

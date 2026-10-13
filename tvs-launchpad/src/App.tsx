@@ -9,6 +9,8 @@ import Launch from "./pages/Launch";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Swap from "./pages/Swap";
+import Stake from "./pages/Stake";
+import Distribution from "./pages/Distribution";
 
 function ScrollTop() {
   const { pathname } = useLocation();
@@ -29,6 +31,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/launch" element={<Launch />} />
             <Route path="/swap" element={<Swap />} />
+            <Route path="/stake" element={<Stake />} />
+            <Route path="/distribution" element={<Distribution />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/project/:address" element={<ProjectDetail />} />
           </Routes>

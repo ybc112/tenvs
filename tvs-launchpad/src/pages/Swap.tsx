@@ -289,6 +289,10 @@ export default function Swap() {
       toast(`请切换到 ${config.nativeSymbol} 主网（Chain ${config.chainId}）`, "err");
       return;
     }
+    if (config.chainId !== 56) {
+      toast("Swap 仅支持 BSC 主网（测试网预览模式下不可用）", "err");
+      return;
+    }
     if (tab === "buy" || tab === "sell") {
       if (!inAmt || Number(inAmt) <= 0) return toast("请输入数量", "err");
       await doSwap();
