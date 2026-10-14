@@ -10,10 +10,10 @@
  *   RequiredSuffix: 0xa86b ｜ CreationFee: 0.005 BNB
  */
 /**
- * 网络开关：默认主网；VITE_NET=testnet 时连 BSC 测试网（质押/分发页真实联调）
- * 用法：PowerShell 执行 $env:VITE_NET="testnet"; npm run dev
+ * 网络开关：默认测试网（Vercel 部署即测试网联调模式，质押/分发页真实可用）。
+ * 正式上主网时在 Vercel 环境变量配置 VITE_NET=mainnet 即可整体切回主网，无需改代码。
  */
-const IS_TESTNET = import.meta.env.VITE_NET === "testnet";
+const IS_TESTNET = import.meta.env.VITE_NET !== "mainnet";
 
 export const config = {
   chainId: IS_TESTNET ? 97 : 56,
