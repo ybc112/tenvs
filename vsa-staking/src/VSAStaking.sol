@@ -16,7 +16,7 @@ import {SafeERC20} from "./oz/SafeERC20.sol";
  *  - 质押周期 30 天(权重 1.0) / 90 天(1.5) / 270 天(2.5)，期内可强行解除（罚没未释放奖励）
  *  - 10 年产出总量精确 10,000,000 VSA，段位每日产出 5000/3500/2450/1715/末段，每段 730 天
  *  - 个人产出 = 段内产出 × (个人加权量 ÷ 全网加权总量)，O(1) 账本快照结算（严禁遍历用户）
- *  - 单地址加权质押量 ≤ 全网 10%（全网为空时跳过 = bootstrap）；结算窗口产出 ≤ 窗口产出 2%（超出部分暂存补发，不没收）
+ *  - 单地址加权质押量 ≤ 全网 10%（全网为空时跳过 = bootstrap）；结算窗口产出 ≤ 窗口产出 20%（超出部分暂存补发，不没收）
  *  - 领取 50% 立即到账 + 50% 锁 90 天线性释放（各笔独立窗口，勤领不重置他人进度；队列上限 200 笔，超出并入最新笔）
  *  - 复投 = 全部可领（立即半 + 锁仓已释放部分）+ 10% bonus（独立 bonusPool 账本，仅 owner 注资）
  *  - 到期解押退本金，奖励不受影响（先结算入 claimable，锁仓按原窗口继续释放）
@@ -63,8 +63,8 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
 
     /// @notice 单地址加权质押上限：全网 10%（bp）
     uint256 public constant STAKE_CAP_BPS = 1000;
-    /// @notice 单地址结算窗口产出上限：窗口产出 2%（bp）
-    uint256 public constant DAILY_CAP_BPS = 200;
+    /// @notice 单地址结算窗口产出上限：窗口产出 20%（bp）
+    uint256 public constant DAILY_CAP_BPS = 2000;
     /// @notice 复投额外奖励：+10%（bp）
     uint256 public constant REINVEST_BONUS_BPS = 1000;
     /// @notice 锁仓队列上限（超出时新锁并入最新一笔，加权平均起点、进度守恒）
@@ -107,8 +107,8 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         uint256 weighted; // Σ在押权重（WAD）
         uint256 accPaid; // 已结算锚点（不变量 accPaid == weighted × accPerWeight / SCALE）
         uint256 claimable; // 已结算待领（解押/强解时入库）
-        uint256 deferred; // 被 2% 上限暂存的产出（份额回落后自动补发，不没收）
-        uint64 lastCapSettle; // 2% 产出上限窗口锚点
+        uint256 deferred; // 被 20% 上限暂存的产出（份额回落后自动补发，不没收）
+        uint64 lastCapSettle; // 20% 产出上限窗口锚点
         LockEntry[] locks; // 锁仓队列（各笔独立窗口）
         uint256 lockCursor; // 头部已完结笔数（扫除优化）
         uint256[] stakeIds; // 全部质押记录 id（含已退出的，前端按 active 过滤）
@@ -257,7 +257,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 2% 窗口上限 = DAILY_CAP_BPS% × (E(now) − E(锚点))，跨段由 E 自动处理
+     * @notice 20% 窗口上限 = DAILY_CAP_BPS% × (E(now) − E(锚点))，跨段由 E 自动处理
      */
     function _windowCap(UserInfo storage u, uint256 t) internal view returns (uint256) {
         uint256 dE = _emission(t) - _emission(u.lastCapSettle);
@@ -292,7 +292,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 用户结算：raw 按 2% 窗口封顶后入 claimable，accPaid 记为「当前权重对应的应得总额」
+     * @notice 用户结算：raw 按 20% 窗口封顶后入 claimable，accPaid 记为「当前权重对应的应得总额」
      * @dev 仅在 claim/reinvest/stake/unstake/emergencyUnstake 中调用；推进 lastCapSettle。
      *      结算后满足不变量 accPaid == weighted × accPerWeight / ACC_SCALE，
      *      故权重变更（增/减）后必须再次调用 _reanchor，否则会欠账下溢或追溯多计。
@@ -662,7 +662,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 指定账户在 t 时刻的待领产出（视图内模拟全局推进 + 2% 限速 + 暂存补发，不改状态）
+     * @notice 指定账户在 t 时刻的待领产出（视图内模拟全局推进 + 20% 限速 + 暂存补发，不改状态）
      */
     function _pendingRawOf(address user, uint256 t) internal view returns (uint256) {
         UserInfo storage u = _users[user];
@@ -690,7 +690,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 用户待领概览（视图内模拟全局结算与 2% 限速）
+     * @notice 用户待领概览（视图内模拟全局结算与 20% 限速）
      * @return pendingRaw 未领取产出（claimable + 本窗口结算 + 本次可补发，限速后口径）
      * @return claimableNow 现在领取可立即到账 = pendingRaw ÷ 2 + 锁仓已释放
      * @return lockedTotal 锁定中总额（未释放部分，各笔独立窗口）

@@ -38,7 +38,7 @@ export interface StakeRecordView {
 export interface MyStaking {
   weighted: bigint;
   claimable: bigint;
-  /** 被 2% 上限暂存的产出（份额回落后自动补发，不没收） */
+  /** 被 20% 上限暂存的产出（份额回落后自动补发，不没收） */
   deferred: bigint;
   lockEntries: number;
   pendingRaw: bigint;

@@ -71,15 +71,15 @@ export const stakingConfig = {
   stakingReady: IS_TESTNET,
   /** VSAStaking 合约地址 */
   staking: IS_TESTNET
-    ? "0xD672F9f609D81EAB3d1965Ae52095eaae227a8fa" // BSC Testnet
+    ? "0x7Ab9652DF7DBbbB09e19d6D251426246EeA839F1" // BSC Testnet（2026-10-14 重部署：产出上限 20%）
     : "", // 主网部署后回填
   /** 质押币 TVS（主网与 Swap 同一地址；测试网为 MockTVS 测试币） */
   tvs: IS_TESTNET
-    ? "0x29965c7a677b7bb762915b3c6df0cea65dd654dc" // MockTVS @ BSC Testnet
+    ? "0x60599d3C26ad2e22D984a3Ec43e9e4e930244473" // MockTVS @ BSC Testnet
     : "0x221f7336711cd6eb72d8c897a0d185a12a357777",
   /** 产出币 VSA（外部代币合约） */
   vsa: IS_TESTNET
-    ? "0xe5091a69c88d301BeBCf18Bbc9Bd0E782A132eA7" // MockVSA @ BSC Testnet
+    ? "0x8D99c642D81c914b1268afF57304CaC7287f19ec" // MockVSA @ BSC Testnet
     : "", // 主网部署后回填
   /** 10 年总产出（与链上 TOTAL_EMISSION 一致，前端展示用） */
   totalEmission: 10_000_000n * 10n ** 18n,
