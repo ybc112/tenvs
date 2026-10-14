@@ -10,10 +10,11 @@
  *   RequiredSuffix: 0xa86b ｜ CreationFee: 0.005 BNB
  */
 /**
- * 网络开关：默认测试网（Vercel 部署即测试网联调模式，质押/分发页真实可用）。
- * 正式上主网时在 Vercel 环境变量配置 VITE_NET=mainnet 即可整体切回主网，无需改代码。
+ * 网络开关：默认主网（线上 Vercel 部署即主网）。
+ * 本地测试网联调：tvs-launchpad/.env.development.local 已固定 VITE_NET=testnet，npm run dev 即连测试网。
+ * 如需线上站点临时切测试网：在 Vercel 环境变量配置 VITE_NET=testnet 后重新部署（勿改代码默认值）。
  */
-const IS_TESTNET = import.meta.env.VITE_NET !== "mainnet";
+const IS_TESTNET = import.meta.env.VITE_NET === "testnet";
 
 export const config = {
   chainId: IS_TESTNET ? 97 : 56,
