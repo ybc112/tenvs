@@ -72,7 +72,7 @@ export const stakingConfig = {
   stakingReady: IS_TESTNET,
   /** VSAStaking 合约地址 */
   staking: IS_TESTNET
-    ? "0x7Ab9652DF7DBbbB09e19d6D251426246EeA839F1" // BSC Testnet（2026-10-14 重部署：产出上限 20%）
+    ? "0x90c14add8ab45146cf09085faaa88dd7d9a1cd5a" // BSC Testnet（2026-10-16 重部署：单钱包无上限、期内不可解除）
     : "", // 主网部署后回填
   /** 质押币 TVS（主网与 Swap 同一地址；测试网为 MockTVS 测试币） */
   tvs: IS_TESTNET

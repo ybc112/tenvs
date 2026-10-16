@@ -38,8 +38,6 @@ export interface StakeRecordView {
 export interface MyStaking {
   weighted: bigint;
   claimable: bigint;
-  /** 被 20% 上限暂存的产出（份额回落后自动补发，不没收） */
-  deferred: bigint;
   lockEntries: number;
   pendingRaw: bigint;
   claimableNow: bigint;
@@ -54,7 +52,6 @@ export const stakingReady = () => stakingConfig.stakingReady && !!stakingConfig.
 const EMPTY_MY: MyStaking = {
   weighted: 0n,
   claimable: 0n,
-  deferred: 0n,
   lockEntries: 0,
   pendingRaw: 0n,
   claimableNow: 0n,
@@ -144,11 +141,11 @@ export function useMyStaking(account: string | null, pollMs = 30_000) {
     setLoading(true);
     try {
       const [u, p, ls] = await Promise.all([
-        c.userInfo(account) as Promise<[bigint, bigint, bigint, bigint[]]>,
+        c.userInfo(account) as Promise<[bigint, bigint, bigint[]]>,
         c.pendingOf(account) as Promise<[bigint, bigint, bigint, bigint]>,
         c.lockStats(account) as Promise<[bigint, bigint, bigint]>,
       ]);
-      const ids = Array.from(u[3] ?? []).map((x) => Number(x));
+      const ids = Array.from(u[2] ?? []).map((x) => Number(x));
       const recs = await Promise.all(ids.map((id) => c.records(id) as Promise<unknown>));
       const stakes: StakeRecordView[] = recs.map((raw, i) => {
         const r = raw as Record<string, unknown>;
@@ -166,7 +163,6 @@ export function useMyStaking(account: string | null, pollMs = 30_000) {
       setMine({
         weighted: u[0],
         claimable: u[1],
-        deferred: u[2],
         lockEntries: Number(ls[0] ?? 0),
         pendingRaw: p[0],
         claimableNow: p[1],

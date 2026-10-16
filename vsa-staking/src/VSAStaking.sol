@@ -13,14 +13,13 @@ import {SafeERC20} from "./oz/SafeERC20.sol";
  * @notice 质押币 = TVS（带税 BEP-20，按 balance-delta 实收记账），产出币 = VSA（零税 BEP-20）。
  *
  * 业务规则：
- *  - 质押周期 30 天(权重 1.0) / 90 天(1.5) / 270 天(2.5)，期内可强行解除（罚没未释放奖励）
+ *  - 质押周期 30 天(权重 1.0) / 90 天(1.5) / 270 天(2.5)；期内不可解除，仅到期赎回
+ *  - 单钱包不设权重/质押量/产出份额上限
  *  - 10 年产出总量精确 10,000,000 VSA，段位每日产出 5000/3500/2450/1715/末段，每段 730 天
  *  - 个人产出 = 段内产出 × (个人加权量 ÷ 全网加权总量)，O(1) 账本快照结算（严禁遍历用户）
- *  - 单地址加权质押量 ≤ 全网 10%（全网为空时跳过 = bootstrap）；结算窗口产出 ≤ 窗口产出 20%（超出部分暂存补发，不没收）
  *  - 领取 50% 立即到账 + 50% 锁 90 天线性释放（各笔独立窗口，勤领不重置他人进度；队列上限 200 笔，超出并入最新笔）
  *  - 复投 = 全部可领（立即半 + 锁仓已释放部分）+ 10% bonus（独立 bonusPool 账本，仅 owner 注资）
  *  - 到期解押退本金，奖励不受影响（先结算入 claimable，锁仓按原窗口继续释放）
- *  - 强行解除退本金，按该笔权重比例罚未领取 + 锁定中奖励（留在产出池账本，不消失）
  *
  * 安全红线（BEP-652 / CZ 实战经验）：
  *  - 全部写路径 O(1)，无遍历用户循环；BSC 单笔 gas 上限 16,777,216
@@ -61,10 +60,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     /// @notice accPerWeight 精度：acc += dE × ACC_SCALE / totalWeight（防大池小产出被 floor 归零）
     uint256 private constant ACC_SCALE = 1e30;
 
-    /// @notice 单地址加权质押上限：全网 10%（bp）
-    uint256 public constant STAKE_CAP_BPS = 1000;
-    /// @notice 单地址结算窗口产出上限：窗口产出 20%（bp）
-    uint256 public constant DAILY_CAP_BPS = 2000;
     /// @notice 复投额外奖励：+10%（bp）
     uint256 public constant REINVEST_BONUS_BPS = 1000;
     /// @notice 锁仓队列上限（超出时新锁并入最新一笔，加权平均起点、进度守恒）
@@ -106,9 +101,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     struct UserInfo {
         uint256 weighted; // Σ在押权重（WAD）
         uint256 accPaid; // 已结算锚点（不变量 accPaid == weighted × accPerWeight / SCALE）
-        uint256 claimable; // 已结算待领（解押/强解时入库）
-        uint256 deferred; // 被 20% 上限暂存的产出（份额回落后自动补发，不没收）
-        uint64 lastCapSettle; // 20% 产出上限窗口锚点
+        uint256 claimable; // 已结算待领（解押/领取时入库）
         LockEntry[] locks; // 锁仓队列（各笔独立窗口）
         uint256 lockCursor; // 头部已完结笔数（扫除优化）
         uint256[] stakeIds; // 全部质押记录 id（含已退出的，前端按 active 过滤）
@@ -136,8 +129,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     error NotRecordOwner();
     error RecordInactive();
     error NotMatured();
-    error MustUseUnstake(); // 已到期应走 unstake，不应强解
-    error CapTenPercentExceeded();
     error NothingToClaim();
     error InsufficientRewardPool();
     error InsufficientBonusPool();
@@ -148,7 +139,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     event Claimed(address indexed user, uint256 immediate, uint256 lockedAdded, uint256 swept);
     event Reinvested(address indexed user, uint256 indexed newStakeId, uint256 principal, uint256 bonus, uint8 termIdx);
     event Unstaked(address indexed user, uint256 indexed stakeId, uint256 principal, bool isVsa);
-    event EmergencyUnstaked(address indexed user, uint256 indexed stakeId, uint256 principal, uint256 forfeited, bool isVsa);
     event PoolFunded(uint256 rewardAmount, uint256 bonusAmount);
 
     // ============================== 构造 ==============================
@@ -257,14 +247,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 20% 窗口上限 = DAILY_CAP_BPS% × (E(now) − E(锚点))，跨段由 E 自动处理
-     */
-    function _windowCap(UserInfo storage u, uint256 t) internal view returns (uint256) {
-        uint256 dE = _emission(t) - _emission(u.lastCapSettle);
-        return (dE * DAILY_CAP_BPS) / 10000;
-    }
-
-    /**
      * @notice 锁仓队列扫描：累计「已释放未领取」部分（各笔独立进度，幂等重算）
      * @dev 遍历上限 = MAX_LOCK_ENTRIES(200)，gas 有界；完全扫出的头部笔推进 cursor
      */
@@ -292,36 +274,14 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 用户结算：raw 按 20% 窗口封顶后入 claimable，accPaid 记为「当前权重对应的应得总额」
-     * @dev 仅在 claim/reinvest/stake/unstake/emergencyUnstake 中调用；推进 lastCapSettle。
+     * @notice 用户结算：raw 全额入 claimable（无限速），accPaid 记为「当前权重对应的应得总额」
+     * @dev 仅在 claim/reinvest/stake/unstake 中调用。
      *      结算后满足不变量 accPaid == weighted × accPerWeight / ACC_SCALE，
      *      故权重变更（增/减）后必须再次调用 _reanchor，否则会欠账下溢或追溯多计。
      */
-    function _settleUser(UserInfo storage u, uint256 t) internal {
-        uint256 raw = _rawPending(u);
-        uint256 cap = _windowCap(u, t);
-        if (raw > cap) {
-            u.claimable += cap;
-            u.deferred += raw - cap; // 暂存，份额回落后补发
-        } else {
-            u.claimable += raw;
-            if (u.deferred > 0) {
-                if (_emission(t) >= TOTAL_EMISSION) {
-                    // 产出已结束：限速失去意义，暂存一次性补发（不没收）
-                    u.claimable += u.deferred;
-                    u.deferred = 0;
-                } else {
-                    uint256 spare = cap - raw;
-                    if (spare > 0) {
-                        uint256 payback = u.deferred <= spare ? u.deferred : spare;
-                        u.deferred -= payback;
-                        u.claimable += payback;
-                    }
-                }
-            }
-        }
+    function _settleUser(UserInfo storage u) internal {
+        u.claimable += _rawPending(u);
         u.accPaid = (u.weighted * accPerWeight) / ACC_SCALE;
-        u.lastCapSettle = uint64(t);
     }
 
     /**
@@ -337,7 +297,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     // ============================== 质押 ==============================
 
     /**
-     * @notice 质押 TVS。带税代币按 balance-delta 实收记账；全网为空时跳过 10% 上限（bootstrap）
+     * @notice 质押 TVS。带税代币按 balance-delta 实收记账；单钱包不限量
      */
     function stake(uint256 amount, uint8 termIdx) external nonReentrant {
         if (amount == 0) revert ZeroAmount();
@@ -355,13 +315,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         UserInfo storage u = _users[_msgSender()];
         uint256 weight = received * mult;
 
-        // 单地址 ≤ 全网 10%（用加权量；totalWeight == 0 时 bootstrap 跳过）
-        if (totalWeight != 0) {
-            if ((u.weighted + weight) * 10000 > (totalWeight + weight) * STAKE_CAP_BPS) {
-                revert CapTenPercentExceeded();
-            }
-        }
-
         uint256 id = ++_stakeCount;
         StakeRecord storage r = _records[id];
         r.owner = _msgSender();
@@ -373,7 +326,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         r.principal = received;
         r.weight = weight;
 
-        _settleUser(u, t); // 先按旧权重结算（新地址 raw = 0）
+        _settleUser(u); // 先按旧权重结算（新地址 raw = 0）
         u.weighted += weight;
         _reanchor(u); // 防止新仓位追溯领取历史产出
         u.stakeIds.push(id);
@@ -395,7 +348,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         internal
         returns (uint256 transferable, uint256 lockedAdded, uint256 released)
     {
-        _settleUser(u, t);
+        _settleUser(u);
         released = _sweepLocks(u, t);
         uint256 half = u.claimable / 2;
         transferable = half + released;
@@ -468,13 +421,6 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         uint256 principal = transferable + bonus;
         uint256 weight = principal * mult;
 
-        // 新质押同样受 10% 上限约束
-        if (totalWeight != 0) {
-            if ((u.weighted + weight) * 10000 > (totalWeight + weight) * STAKE_CAP_BPS) {
-                revert CapTenPercentExceeded();
-            }
-        }
-
         newStakeId = ++_stakeCount;
         StakeRecord storage r = _records[newStakeId];
         r.owner = _msgSender();
@@ -509,7 +455,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         uint256 t = block.timestamp;
         _updateGlobal(t);
         UserInfo storage u = _users[_msgSender()];
-        _settleUser(u, t);
+        _settleUser(u);
 
         uint256 weight = r.weight;
         uint256 principal = r.principal;
@@ -536,80 +482,15 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
         emit Unstaked(_msgSender(), stakeId, principal, isVsa);
     }
 
-    /**
-     * @notice 强行解除（期内）：退本金；按该笔权重比例罚没 claimable + 锁定中奖励
-     *         （留在 rewardPool 账本内，不消失）；已到期请走 unstake
-     */
-    function emergencyUnstake(uint256 stakeId) external nonReentrant {
-        StakeRecord storage r = _records[stakeId];
-        if (r.owner != _msgSender()) revert NotRecordOwner();
-        if (!r.active) revert RecordInactive();
-        if (block.timestamp >= r.maturityTime) revert MustUseUnstake();
-
-        uint256 t = block.timestamp;
-        _updateGlobal(t);
-        UserInfo storage u = _users[_msgSender()];
-        _settleUser(u, t);
-
-        uint256 weight = r.weight;
-        uint256 principal = r.principal;
-        bool isVsa = r.isVsa;
-
-        // 比例罚没（分母 = 全部在押权重，必 > 0 因 weight 在押）
-        uint256 rBps = (weight * 10000) / u.weighted;
-        uint256 fClaimable = (u.claimable * weight) / u.weighted;
-        uint256 fDeferred = (u.deferred * weight) / u.weighted;
-        u.claimable -= fClaimable;
-        u.deferred -= fDeferred;
-        // 锁仓队列逐笔按比例缩减（未领取部分 a − s 罚 rBps，进度自动保持）
-        uint256 fLocked = 0;
-        uint256 len = u.locks.length;
-        for (uint256 i = u.lockCursor; i < len; i += 1) {
-            LockEntry storage e = u.locks[i];
-            if (e.amount == 0) continue;
-            uint256 cut = ((uint256(e.amount) - e.scanned) * rBps) / 10000;
-            if (cut > 0) {
-                e.amount = uint128(uint256(e.amount) - cut);
-                fLocked += cut;
-            }
-        }
-        uint256 forfeited = fClaimable + fDeferred + fLocked;
-
-        r.active = false;
-        r.principal = 0;
-        r.weight = 0;
-
-        u.weighted -= weight;
-        _reanchor(u); // 减权重后重锚定，防止剩余仓位 raw 下溢
-        totalWeight -= weight;
-        if (isVsa) {
-            totalStakedVsa -= principal;
-        } else {
-            totalStakedTvs -= principal;
-        }
-
-        if (isVsa) {
-            VSA.safeTransfer(_msgSender(), principal);
-        } else {
-            TVS.safeTransfer(_msgSender(), principal);
-        }
-        emit EmergencyUnstaked(_msgSender(), stakeId, principal, forfeited, isVsa);
-    }
-
     // ============================== 视图 ==============================
 
     function userInfo(address user)
         external
         view
-        returns (
-            uint256 weighted,
-            uint256 claimable,
-            uint256 deferred,
-            uint256[] memory stakeIds
-        )
+        returns (uint256 weighted, uint256 claimable, uint256[] memory stakeIds)
     {
         UserInfo storage u = _users[user];
-        return (u.weighted, u.claimable, u.deferred, u.stakeIds);
+        return (u.weighted, u.claimable, u.stakeIds);
     }
 
     function records(uint256 stakeId) external view returns (StakeRecord memory) {
@@ -662,7 +543,7 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
     }
 
     /**
-     * @notice 指定账户在 t 时刻的待领产出（视图内模拟全局推进 + 20% 限速 + 暂存补发，不改状态）
+     * @notice 指定账户在 t 时刻的待领产出（视图内模拟全局推进，不改状态）
      */
     function _pendingRawOf(address user, uint256 t) internal view returns (uint256) {
         UserInfo storage u = _users[user];
@@ -672,26 +553,12 @@ contract VSAStaking is Context, Ownable, Ownable2Step, ReentrancyGuard {
             acc += (dE * ACC_SCALE) / totalWeight;
         }
         uint256 raw = u.weighted > 0 ? (u.weighted * acc) / ACC_SCALE - u.accPaid : 0;
-        uint256 cap = _windowCap(u, t);
-        uint256 take;
-        if (raw > cap) {
-            take = cap;
-        } else if (u.deferred > 0) {
-            if (_emission(t) >= TOTAL_EMISSION) {
-                take = raw + u.deferred; // 产出已结束：一次性补发
-            } else {
-                uint256 spare = cap - raw;
-                take = raw + (u.deferred <= spare ? u.deferred : spare);
-            }
-        } else {
-            take = raw;
-        }
-        return u.claimable + take;
+        return u.claimable + raw;
     }
 
     /**
-     * @notice 用户待领概览（视图内模拟全局结算与 20% 限速）
-     * @return pendingRaw 未领取产出（claimable + 本窗口结算 + 本次可补发，限速后口径）
+     * @notice 用户待领概览（视图内模拟全局结算）
+     * @return pendingRaw 未领取产出（claimable + 本窗口结算）
      * @return claimableNow 现在领取可立即到账 = pendingRaw ÷ 2 + 锁仓已释放
      * @return lockedTotal 锁定中总额（未释放部分，各笔独立窗口）
      * @return lockedReleased 锁仓已释放未领取部分

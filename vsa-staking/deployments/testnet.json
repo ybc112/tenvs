@@ -1,13 +1,13 @@
 {
   "network": "BSC Testnet",
   "chainId": 97,
-  "deployedAt": "2026-10-14",
+  "deployedAt": "2026-10-16",
   "deployer": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
   "daySeconds": 60,
   "contracts": {
     "MockTVS": "0x60599d3C26ad2e22D984a3Ec43e9e4e930244473",
     "MockVSA": "0x8D99c642D81c914b1268afF57304CaC7287f19ec",
-    "VSAStaking": "0x7Ab9652DF7DBbbB09e19d6D251426246EeA839F1"
+    "VSAStaking": "0x90c14add8ab45146cf09085faaa88dd7d9a1cd5a"
   },
   "distributor": {
     "script": "script/DistributorDeploy.s.sol",
@@ -29,12 +29,12 @@
   "config": {
     "taxBps": 500,
     "taxExemptStaking": true,
-    "rewardPool": "1000000e18",
+    "rewardPool": "800000e18",
     "bonusPool": "100000e18",
     "owner": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
     "pendingOwner": "0x72f8637ec6519702b99a22ec6f893fb3822dd213",
     "ownerNote": "质押多签在测试网未部署，acceptOwnership 未执行，owner 由部署钱包代持"
   },
-  "script": "script/TestnetDeploy.s.sol",
-  "notes": "2026-10-14 重部署：单钱包产出上限 DAILY_CAP_BPS 2%→20%（私募筹码大额质押），质押上限 10% 保持不变；旧合约 0xD672F9f609D81EAB3d1965Ae52095eaae227a8fa 作废。DAY_SECONDS=60 加速档：30 天档=30 分钟，90 天锁仓=90 分钟，10 年曲线≈25 天。主网部署必须用 script/Deploy.s.sol 且 DAY_SECONDS=86400"
+  "script": "script/Deploy.s.sol（复用已有 MockTVS/MockVSA，仅重部署 VSAStaking）",
+  "notes": "2026-10-16 重部署：①单钱包不设任何上限（移除 10% 质押上限与 20% 产出限速）；②移除强行解除，质押期内不可解除，仅到期赎回（unstake 需 maturity）。旧合约 0x7Ab9652DF7DBbbB09e19d6D251426246EeA839F1（20% 上限版）作废，其上质押记录不再使用。DAY_SECONDS=60 加速档：30 天档=30 分钟，90 天锁仓=90 分钟。主网部署必须用 script/Deploy.s.sol 且 DAY_SECONDS=86400"
 }

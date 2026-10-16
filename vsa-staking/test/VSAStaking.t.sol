@@ -82,8 +82,8 @@ contract VSAStakingTest is TestBase {
     }
 
     /**
-     * @notice 种子池：几何增长灌入权重（每个新质押者恰好 10% 上限），直到全网 ≥ minTokens 个代币。
-     *         用于让小份额用户的产出不被 20% 上限截断，保证精度断言确定性。
+     * @notice 种子池：几何增长灌入权重（每笔新质押恰好占当时全网 10%），直到全网 ≥ minTokens 个代币。
+     *         用于快速稀释新质押者的份额，保证小份额用户的精度断言确定性。
      */
     function _seedPool(uint256 minTokens) internal {
         for (uint256 i = 0; i < 80 && staking.totalWeight() < minTokens * W_PER_TOKEN; i += 1) {
@@ -172,7 +172,7 @@ contract VSAStakingTest is TestBase {
     // ---------- 2. 档位与权重 ----------
 
     function test_TermWeightsAndMaturity() public {
-        _seedPool(4_600); // alice 三笔累计 500 需全网 ≥ 5,000 才都在 10% 上限内
+        _seedPool(4_600); // 稀释份额，避免精度噪声
         uint256 twBefore = staking.totalWeight();
         uint256 stakedBefore = staking.totalStakedTvs();
 
@@ -353,239 +353,35 @@ contract VSAStakingTest is TestBase {
         staking.claim();
     }
 
-    // ---------- 5. 10% 质押上限 ----------
+    // ---------- 5. 无质押上限（单钱包不限量、无限速） ----------
 
-    function test_CapTenPercentAndBootstrap() public {
-        // bootstrap：全网为空，首笔任意大小
-        _stake(alice, 10_000 * 1e18, 0);
-
-        // bob 最大：9×w ≤ 10,000 → w ≤ 1,111.11
-        _stake(bob, 1_111 * 1e18, 0);
-        vm.startPrank(bob);
-        tvs.approve(address(staking), 10_000 * 1e18);
-        vm.expectRevert(VSAStaking.CapTenPercentExceeded.selector);
-        staking.stake(1_112 * 1e18, 0);
-        vm.stopPrank();
+    /// @notice 单钱包不限量：远超全网 10% 的大额质押可直接成功
+    function test_NoStakeCap() public {
+        _stake(alice, 10_000 * 1e18, 0); // bootstrap
+        // bob 直接 10 倍于 alice，占全网 ~90.9% 也能质押
+        uint256 id = _stake(bob, 100_000 * 1e18, 0);
+        VSAStaking.StakeRecord memory r = staking.records(id);
+        assertEq(r.principal, 100_000 * 1e18, "huge stake accepted");
+        assertEq(staking.totalWeight(), 10_000 * W_PER_TOKEN + 100_000 * W_PER_TOKEN, "weights summed");
     }
 
-    // ---------- 6. 20% 日产出上限（超出暂存补发，不没收） ----------
-
-    function test_CapDailyTwentyPercent() public {
+    /// @notice 独占全网的钱包按份额领取全部窗口产出（无限速）
+    function test_DominantWalletFullOutput() public {
         _fund(10_000_000 * 1e18, 0);
         _stake(alice, 100 * 1e18, 0); // 100% 份额
         vm.warp(block.timestamp + 10 * DAY);
-
-        // raw = 50,000；cap = 20% × 50,000 = 10,000；超出 40,000 暂存
         (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertEq(pending, 10_000 * 1e18, "capped to 20% of window emission");
-
-        vm.prank(alice);
-        staking.claim(); // 立即 5,000，同时结算 deferred
-        assertEq(vsa.balanceOf(alice), 5_000 * 1e18);
-        (, , uint256 deferred, ) = staking.userInfo(alice);
-        assertEq(deferred, 40_000 * 1e18, "excess deferred, not forfeited");
-
-        // 新窗口再过 10 天：份额仍 100%，继续暂存
-        vm.warp(block.timestamp + 10 * DAY);
-        (uint256 pending2, , , ) = staking.pendingOf(alice);
-        assertEq(pending2, 10_000 * 1e18, "next window cap");
-        vm.prank(alice);
-        staking.claim();
-        (, , uint256 deferred2, ) = staking.userInfo(alice);
-        assertEq(deferred2, 80_000 * 1e18, "deferred accumulates");
-    }
-
-    /// @notice 份额回落后（新大额质押者稀释），暂存的产出自动补发
-    function test_DeferredPaybackWhenShareDrops() public {
-        _fund(10_000_000 * 1e18, 0);
-        _stake(alice, 100 * 1e18, 0); // bootstrap，权重 100
-        vm.warp(block.timestamp + 10 * DAY); // 独占期产出 50,000 全记 alice
-
-        // 几何灌池到 alice 份额 < 2%（每笔恰好在 10% 上限内；权重 1e36/代币）
-        for (uint256 i = 0; i < 50; i += 1) {
-            uint256 tw = staking.totalWeight();
-            uint256 amt = tw / 9 / 1e36;
-            if (amt == 0) amt = 1;
-            address who = address(uint160(0x3000 + i));
-            tvs.mint(who, amt * 1e18);
-            vm.startPrank(who);
-            tvs.approve(address(staking), type(uint256).max);
-            staking.stake(amt * 1e18, 0);
-            vm.stopPrank();
-        }
-        uint256 T = staking.totalWeight();
-        assertLt((100 * 1e36 * 10000) / T, 200, "alice share < 2%");
-
-        vm.warp(block.timestamp + 10 * DAY);
-        // raw = 50,000（独占期）+ 100/T×50,000（稀释期）；cap = 20%×100,000 = 20,000
-        (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertEq(pending, 20_000 * 1e18, "take capped at 20k");
-
-        vm.prank(alice);
-        staking.claim(); // 立即 10,000，deferred 落账
-        assertEq(vsa.balanceOf(alice), 10_000 * 1e18);
-        (, , uint256 deferred, ) = staking.userInfo(alice);
-        assertGt(deferred, 0, "excess stored as deferred");
-
-        // 再过 10 天：份额 < 20% → raw < cap → spare 补发 deferred
-        vm.warp(block.timestamp + 10 * DAY);
-        (uint256 pending3, , , ) = staking.pendingOf(alice);
-        assertEq(pending3, 10_000 * 1e18, "raw + payback fills to cap");
-        vm.prank(alice);
-        staking.claim();
-        // 到账 = 第二次结算立即半 5,000 + 首笔锁仓释放 10,000×10/90 ≈ 1,111.11
-        uint256 lockSwept = (10_000 * 1e18 * 10 * DAY) / (90 * DAY);
-        assertEq(vsa.balanceOf(alice), 15_000 * 1e18 + lockSwept, "payback half received");
-
-        // 暂存余额 = 总应得 − 两次结算入账（20,000 + 10,000）；稀释期 raw 复刻合约双重 floor 公式
-        (, , uint256 deferredLeft, ) = staking.userInfo(alice);
-        uint256 rawDiluted = _expectedRaw(100 * W_PER_TOKEN, 50_000 * 1e18);
-        assertEq(
-            deferredLeft,
-            (50_000 * 1e18 + 2 * rawDiluted) - 30_000 * 1e18,
-            "deferred net of payback"
-        );
-    }
-
-    function test_CapWindowAcrossSegment() public {
-        _fund(10_000_000 * 1e18, 0);
-        _stake(alice, 100 * 1e18, 2); // 270d，跨段
-        vm.warp(block.timestamp + 729 * DAY); // seg1 末日
-        vm.prank(alice);
-        staking.claim(); // 锚点 = day 729
-
-        vm.warp(block.timestamp + 2 * DAY); // day 731，跨入 seg2
-        // cap = 20% × (E(731) − E(729)) = 20% × (3,653,500 − 3,645,000) = 1,700
-        (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertEq(pending, 1_700 * 1e18, "cap across segment uses E diff");
-    }
-
-    /// @notice 全部解押后 raw 恒为 0，deferred 仍须按窗口补发（读写路径一致性）
-    function test_DeferredPaybackAfterFullUnstake() public {
-        _fund(10_000_000 * 1e18, 0);
-        uint256 id = _stake(alice, 100 * 1e18, 0); // 独占期 100% 份额
-        vm.warp(block.timestamp + 30 * DAY); // raw = 150,000，cap = 30,000
-        vm.prank(alice);
-        staking.unstake(id); // claimable += 30,000，deferred += 120,000，weighted → 0
-
-        (, , uint256 deferred0, ) = staking.userInfo(alice);
-        assertEq(deferred0, 120_000 * 1e18, "deferred kept on mature unstake");
-
-        vm.warp(block.timestamp + DAY); // 新窗口 cap = 1,000
-        (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertEq(pending, 30_000 * 1e18 + 1_000 * 1e18, "view includes payback at raw=0");
-        vm.prank(alice);
-        staking.claim();
-        (, , uint256 deferred1, ) = staking.userInfo(alice);
-        assertEq(deferred1, 120_000 * 1e18 - 1_000 * 1e18, "payback works after full unstake");
-        assertEq(vsa.balanceOf(alice), (30_000 * 1e18 + 1_000 * 1e18) / 2, "half received");
-    }
-
-    /// @notice 10 年产出结束后 cap 恒为 0，deferred 一次性补发（不没收）
-    function test_DeferredDrainAfterEmissionEnd() public {
-        _fund(10_000_000 * 1e18, 0);
-        _stake(alice, 100 * 1e18, 0); // 独占全网 → raw = 全部产出
-        vm.warp(block.timestamp + 3650 * DAY);
-        vm.prank(alice);
-        staking.claim(); // cap = 2,000,000 → 立即领 1,000,000，deferred += 8,000,000
-        assertEq(vsa.balanceOf(alice), 1_000_000 * 1e18);
-        (, , uint256 deferred0, ) = staking.userInfo(alice);
-        assertEq(deferred0, 8_000_000 * 1e18, "excess deferred during emission");
-
-        vm.warp(block.timestamp + 10 * DAY); // 产出已结束
-        (uint256 pendDrain, , , ) = staking.pendingOf(alice);
-        assertEq(pendDrain, 8_000_000 * 1e18, "view promises full drain");
-        vm.prank(alice);
-        staking.claim(); // 暂存一次性补发
-        (, , uint256 deferred1, ) = staking.userInfo(alice);
-        assertEq(deferred1, 0, "drained once emission over");
-        // 到账 = 补发 8,000,000 的一半 + 首笔锁仓释放 1,000,000×10/90
-        uint256 lockSwept = (1_000_000 * 1e18 * 10 * DAY) / (90 * DAY);
-        assertEq(
-            vsa.balanceOf(alice),
-            1_000_000 * 1e18 + 4_000_000 * 1e18 + lockSwept,
-            "full deferred paid"
-        );
+        assertEq(pending, 50_000 * 1e18, "full window output, no rate limit");
     }
 
     /// @notice 产出池不足时复投应干净报错（此前为算术下溢 panic）
     function test_ReinvestInsufficientRewardPool() public {
         _fund(0, 10_000 * 1e18); // 只注复投奖池
         _stake(alice, 100 * 1e18, 0);
-        vm.warp(block.timestamp + 10 * DAY); // transferable = 500
+        vm.warp(block.timestamp + 10 * DAY); // transferable = 50,000（100% 份额无限速）
         vm.expectRevert(VSAStaking.InsufficientRewardPool.selector);
         vm.prank(alice);
         staking.reinvest(0);
-    }
-
-    /// @notice 强解时锁仓队列逐笔按权重比例罚没（决策③适配路径）
-    function test_EmergencyUnstakeForfeitsLockedShare() public {
-        _fund(10_000_000 * 1e18, 0);
-        _stake(alice, 100 * 1e18, 0); // id1
-        _seedPool(11_000); // alice 最终份额 < 2% → 不触 20% 上限，数字确定
-        uint256 idA2 = _stake(alice, 100 * 1e18, 0);
-        uint256 T = staking.totalWeight();
-        uint256 raw = _expectedRaw(200 * W_PER_TOKEN, 50_000 * 1e18); // 10 天窗口应得
-        assertTrue(raw <= (50_000 * 1e18 * 2000) / 10000, "share within 20% cap");
-
-        vm.warp(block.timestamp + 10 * DAY);
-        vm.prank(alice);
-        staking.claim(); // 立即 raw/2，锁 L1 = (raw/2, day10, scanned 0)
-        assertEq(vsa.balanceOf(alice), raw / 2);
-
-        vm.warp(block.timestamp + 10 * DAY); // day 20
-        vm.prank(alice);
-        staking.emergencyUnstake(idA2); // rBps = 100/200 = 5000：罚没一半
-        // settle 先入账 raw2 = raw（T 不变）→ claimable = raw → 罚一半剩一半
-        (, uint256 cAfter, uint256 dAfter, ) = staking.userInfo(alice);
-        assertEq(cAfter, raw / 2, "claimable halved");
-        assertEq(dAfter, 0, "no deferred below 2% share");
-
-        uint256 rel = ((raw / 4) * 10 * DAY) / (90 * DAY);
-        (uint256 entries, uint256 remain, uint256 relPending) = staking.lockStats(alice);
-        assertEq(entries, 1);
-        assertEq(remain, raw / 4 - rel, "lock cut to half");
-        assertEq(relPending, rel, "released progress intact");
-
-        assertEq(tvs.balanceOf(alice), 999_900 * 1e18, "principal returned");
-    }
-
-    /// @notice 复投新增权重同样受 10% 上限约束（份额被动涨超后）
-    function test_ReinvestCapTenPercent() public {
-        _fund(10_000_000 * 1e18, 1_000_000 * 1e18);
-        _stake(alice, 100 * 1e18, 0); // bootstrap
-        _seedPool(1_100); // alice 份额 ≤ 9.09%
-        // 紧急解除全部种子仓位 → alice 回到 100%（同日结算，产出为 0）
-        uint256 n = staking.stakeCount();
-        for (uint256 i = 2; i <= n; i += 1) {
-            address who = staking.records(i).owner;
-            vm.prank(who);
-            staking.emergencyUnstake(i);
-        }
-        vm.warp(block.timestamp + DAY); // alice 独占窗口 raw = 5,000 → cap 100
-        vm.prank(alice);
-        vm.expectRevert(VSAStaking.CapTenPercentExceeded.selector);
-        staking.reinvest(0);
-    }
-
-    /// @notice 强解复投产生的 VSA 仓：退 VSA 本金、totalStakedVsa 归零
-    function test_EmergencyUnstakeReinvestedVsa() public {
-        _fund(10_000_000 * 1e18, 1_000_000 * 1e18);
-        _stake(alice, 10 * 1e18, 0);
-        _seedPool(1_000); // alice 份额 ≤ 1%
-        vm.warp(block.timestamp + DAY);
-        (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertGt(pending, 0);
-        vm.prank(alice);
-        uint256 id = staking.reinvest(0);
-        uint256 principalExpected = (pending / 2) * 11 / 10; // 立即半 + 10% bonus
-        assertEq(staking.totalStakedVsa(), principalExpected);
-
-        vm.warp(block.timestamp + DAY);
-        vm.prank(alice);
-        staking.emergencyUnstake(id);
-        assertEq(vsa.balanceOf(alice), principalExpected, "vsa principal returned");
-        assertEq(staking.totalStakedVsa(), 0);
     }
 
     /// @notice 视图辅助函数与边界
@@ -629,12 +425,12 @@ contract VSAStakingTest is TestBase {
         assertEq(tvs.balanceOf(alice), tvsBal + 1000 * 1e18, "principal returned");
         assertEq(staking.totalWeight(), 0, "weight removed");
 
-        // 奖励可续领（claimable 已入库；单押者受 20% 封顶 = 20%×155,000 = 31,000）
+        // 奖励可续领（claimable 已入库；独占全网无上限 = 31 天全额产出 155,000）
         (uint256 pending, , , ) = staking.pendingOf(alice);
-        assertEq(pending, 31_000 * 1e18, "banked with cap");
+        assertEq(pending, 155_000 * 1e18, "banked in full");
         vm.prank(alice);
         staking.claim();
-        assertEq(vsa.balanceOf(alice), 15_500 * 1e18, "claimed half");
+        assertEq(vsa.balanceOf(alice), 77_500 * 1e18, "claimed half");
     }
 
     function test_UnstakeWrongOwner() public {
@@ -645,45 +441,7 @@ contract VSAStakingTest is TestBase {
         staking.unstake(id);
     }
 
-    // ---------- 8. 强行解除 ----------
-
-    function test_EmergencyUnstakeForfeitsShare() public {
-        _seedPool(9_900);
-        _fund(10_000_000 * 1e18, 0);
-        _stake(alice, 100 * 1e18, 0);
-        _stake(bob, 100 * 1e18, 0);
-        vm.warp(block.timestamp + 10 * DAY);
-
-        (uint256 bobBefore, , , ) = staking.pendingOf(bob);
-        (uint256 aliceBefore, , , ) = staking.pendingOf(alice);
-        assertGt(aliceBefore, 0, "alice has accrued");
-
-        uint256 id = staking.stakeCount(); // bob 的记录 id
-        uint256 aliceId = id - 1;
-        uint256 tvsBal = tvs.balanceOf(alice);
-        vm.prank(alice);
-        staking.emergencyUnstake(aliceId);
-        assertEq(tvs.balanceOf(alice), tvsBal + 100 * 1e18, "principal back mid-term");
-
-        // alice 单笔 = 自身权重 100% → 全部罚没
-        (uint256 aliceAfter, , , ) = staking.pendingOf(alice);
-        assertEq(aliceAfter, 0, "forfeited all (single stake)");
-
-        // bob 不受影响；罚没留在产出池账本（不消失）
-        (uint256 bobAfter, , , ) = staking.pendingOf(bob);
-        assertEq(bobAfter, bobBefore, "bob unaffected");
-        assertEq(staking.rewardPool(), 10_000_000 * 1e18, "forfeit stays in pool ledger");
-    }
-
-    function test_EmergencyUnstakeAfterMaturityReverts() public {
-        uint256 id = _stake(alice, 100 * 1e18, 0);
-        vm.warp(block.timestamp + 30 * DAY + 1);
-        vm.expectRevert(VSAStaking.MustUseUnstake.selector);
-        vm.prank(alice);
-        staking.emergencyUnstake(id);
-    }
-
-    // ---------- 9. 复投 ----------
+    // ---------- 6. 复投 ----------
 
     function test_ReinvestCreatesVsaStakeWithBonus() public {
         _seedPool(9_900);
@@ -735,7 +493,7 @@ contract VSAStakingTest is TestBase {
         assertEq(vsa.balanceOf(alice), vsaBal + r.principal, "VSA principal returned");
     }
 
-    // ---------- 10. 权限 ----------
+    // ---------- 7. 权限 ----------
 
     function test_OwnershipTwoStep() public {
         address safe = address(0x5AFE);
@@ -765,7 +523,7 @@ contract VSAStakingTest is TestBase {
         staking.recoverWrongToken(address(tvs), 0);
     }
 
-    // ---------- 11. 产出结束后 ----------
+    // ---------- 8. 产出结束后 ----------
 
     function test_AfterEmissionEnd() public {
         vm.warp(block.timestamp + 3651 * DAY);
@@ -783,7 +541,7 @@ contract VSAStakingTest is TestBase {
         staking.unstake(id);
     }
 
-    // ---------- 12. 重入防护 ----------
+    // ---------- 9. 重入防护 ----------
 
     function test_ReentrancyGuardBlocksCallback() public {
         _fund(1_000_000 * 1e18, 0);
@@ -801,7 +559,7 @@ contract VSAStakingTest is TestBase {
         attacker.go();
     }
 
-    // ---------- 13. 池盈余视图 ----------
+    // ---------- 10. 池盈余视图 ----------
 
     function test_PoolSurplus() public {
         _fund(1_000_000 * 1e18, 100_000 * 1e18);
@@ -823,7 +581,7 @@ contract VSAStakingTest is TestBase {
         assertEq(staking.poolSurplus(), 0, "reinvest principal is not surplus");
     }
 
-    // ---------- 14. 小时级部署（测试网/本地加速） ----------
+    // ---------- 11. 小时级部署（测试网/本地加速） ----------
 
     function test_HourScaleDeployment() public {
         // 1 业务日 = 60 秒 → 30 天档 = 30 分钟，90 天锁仓 = 90 分钟，10 年曲线 = 3650 分钟（约 2.5 天）
@@ -860,7 +618,7 @@ contract VSAStakingTest is TestBase {
         assertEq(fast.emissionAt(fast.startTime() + 3650 * 60), TOTAL_EMISSION, "curve exact at hour scale");
     }
 
-    // ---------- 15. 需求书兼容接口 ----------
+    // ---------- 12. 需求书兼容接口 ----------
 
     function test_PendingRewardsAndClaimRewardsById() public {
         _seedPool(9_900);
@@ -879,7 +637,7 @@ contract VSAStakingTest is TestBase {
         assertEq(vsa.balanceOf(alice), p / 2, "claimRewards pays immediate half");
     }
 
-    // ---------- 16. 权重变更时的账本锚定（关键回归） ----------
+    // ---------- 13. 权重变更时的账本锚定（关键回归） ----------
 
     /// @notice 部分解押后，账户必须仍可正常领取剩余产出（不得因 accPaid 欠账而下溢）
     function test_PartialUnstakeKeepsAccountHealthy() public {
@@ -923,27 +681,9 @@ contract VSAStakingTest is TestBase {
         assertLt(afterPending, beforePending + beforePending / 50, "no retroactive reward on new stake");
     }
 
-    /// @notice 部分强行解除后，账户仍可正常领取剩余仓位产出
-    function test_PartialEmergencyUnstakeKeepsAccountHealthy() public {
-        _seedPool(9_900);
-        _fund(1_000_000 * 1e18, 0);
-        uint256 idA = _stake(alice, 100 * 1e18, 2);
-        _stake(alice, 100 * 1e18, 2);
-
-        vm.warp(block.timestamp + 10 * DAY);
-        vm.prank(alice);
-        staking.emergencyUnstake(idA);
-
-        vm.warp(block.timestamp + 10 * DAY);
-        uint256 bal = vsa.balanceOf(alice);
-        vm.prank(alice);
-        staking.claim();
-        assertGt(vsa.balanceOf(alice) - bal, 0, "still claimable after partial emergency unstake");
-    }
-
-    /// @notice 高频领取堆满锁仓队列：笔数封顶 200（合并）、全程保守恒（含 deferred）
+    /// @notice 高频领取堆满锁仓队列：笔数封顶 200（合并）、全程保守恒
     function test_LockQueueCapAndGlobalConservation() public {
-        // 100% 份额：触发 20% 限速（deferred）+ 每天领取堆锁仓笔数
+        // 100% 份额（无上限），每天领取堆锁仓笔数
         _fund(10_000_000 * 1e18, 0);
         _stake(alice, 100 * 1e18, 2); // 270 天档，持续在押
 
@@ -960,11 +700,10 @@ contract VSAStakingTest is TestBase {
         (uint256 entryCount, uint256 lockedRemain, ) = staking.lockStats(alice);
         assertLe(entryCount, 200, "lock queue capped");
 
-        // 全局保守恒：received + pendingRaw + lockedRemaining + deferred == 总产出 E(205d) = 1,025,000
+        // 全局保守恒：received + pendingRaw + lockedRemaining == 总产出 E(205d) = 1,025,000
         (uint256 pendingRaw, , uint256 lockedTotal, ) = staking.pendingOf(alice);
-        (, , uint256 deferredNow, ) = staking.userInfo(alice);
-        uint256 accounted = received + pendingRaw + lockedRemain + deferredNow;
-        assertApproxEqAbs(accounted, 1_025_000 * 1e18, 1e6, "global conservation incl deferred");
+        uint256 accounted = received + pendingRaw + lockedRemain;
+        assertApproxEqAbs(accounted, 1_025_000 * 1e18, 1e6, "global conservation");
         // 锁定中 + 待领口径一致性
         assertEq(lockedTotal, lockedRemain, "lockStats consistent with pendingOf");
     }

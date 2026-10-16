@@ -46,13 +46,11 @@ function StakeRow({
   now,
   busy,
   onUnstake,
-  onEmergency,
 }: {
   s: StakeRecordView;
   now: number;
   busy: string;
   onUnstake: (id: number) => void;
-  onEmergency: (id: number) => void;
 }) {
   const term = TERMS[s.termIdx] ?? TERMS[0];
   const matured = now >= s.maturityTime;
@@ -86,15 +84,7 @@ function StakeRow({
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
         <button className="btn btn-sm btn-gold" disabled={!matured || busy !== ""} onClick={() => onUnstake(s.id)}>
-          解押本金
-        </button>
-        <button
-          className="btn btn-sm"
-          style={{ borderColor: "var(--red)", color: "var(--red)" }}
-          disabled={matured || busy !== ""}
-          onClick={() => onEmergency(s.id)}
-        >
-          强行解除
+          {matured ? "解押本金" : "到期后可解押"}
         </button>
       </div>
     </div>
@@ -114,7 +104,6 @@ export default function Stake() {
   const [tvsBal, setTvsBal] = useState<bigint>(0n);
   const [vsaBal, setVsaBal] = useState<bigint>(0n);
   const [reinvestTerm, setReinvestTerm] = useState(0);
-  const [confirmEmg, setConfirmEmg] = useState<number | null>(null);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
 
   const ready = stakingReady();
@@ -176,7 +165,6 @@ export default function Stake() {
       else toast(`失败: ${String(msg).slice(0, 140)}`, "err");
     } finally {
       setBusy("");
-      setConfirmEmg(null);
     }
   };
 
@@ -244,20 +232,6 @@ export default function Stake() {
       "解押成功 ✓ 本金已退回",
     );
 
-  const doEmergency = (id: number) =>
-    run(
-      "emergency",
-      async (s) => {
-        const staking = new Contract(stakingConfig.staking, stakingAbi, s);
-        const tx = await (
-          staking.emergencyUnstake as (i: number) => Promise<{ hash: string; wait: () => Promise<unknown> }>
-        )(id);
-        await tx.wait();
-        return { hash: tx.hash };
-      },
-      "已强行解除 ✓ 未释放奖励已没收",
-    );
-
   const handleMax = () => setAmount(formatUnits(tvsBal, 18));
 
   const emissionBps = useMemo(() => {
@@ -291,7 +265,7 @@ export default function Stake() {
         个人产出 = 当日总产出 ×（个人加权量 ÷ 全网加权总量）；加权量 = 质押量 × 周期权重。
       </p>
       <p className="serif" style={{ color: "var(--gray-d)", fontSize: 14, maxWidth: 720, marginBottom: 36 }}>
-        单地址加权质押 ≤ 全网 10%；结算窗口产出 ≤ 窗口总产出 20%。产出 50% 立即到账、50% 锁 90 天线性释放；
+        质押期内不可解除，仅到期后可赎回本金。产出 50% 立即到账、50% 锁 90 天线性释放；
         不领取可复投并额外获得 10% VSA。
       </p>
 
@@ -385,9 +359,6 @@ export default function Stake() {
           <Stat label="待领产出" value={fmtNumber(mine.pendingRaw, 18, 4)} sub="含本窗口结算" />
           <Stat label="可立即领取" value={fmtNumber(mine.claimableNow, 18, 4)} sub="50% 立即 + 已释放" />
           <Stat label="锁定中" value={fmtNumber(mine.lockedTotal, 18, 4)} sub="90 天线性释放" />
-          {mine.deferred > 0n && (
-            <Stat label="超限暂存" value={fmtNumber(mine.deferred, 18, 4)} sub="份额回落后自动补发" />
-          )}
           <Stat label="VSA 余额" value={fmtNumber(vsaBal, 18, 4)} />
         </div>
 
@@ -428,40 +399,11 @@ export default function Stake() {
         ) : (
           <div>
             {[...mine.stakes].reverse().map((s) => (
-              <StakeRow key={s.id} s={s} now={now} busy={busy} onUnstake={(id) => void doUnstake(id)} onEmergency={setConfirmEmg} />
+              <StakeRow key={s.id} s={s} now={now} busy={busy} onUnstake={(id) => void doUnstake(id)} />
             ))}
           </div>
         )}
       </div>
-
-      {/* 强行解除二次确认 */}
-      {confirmEmg !== null && (
-        <div
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex",
-            alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24,
-          }}
-        >
-          <div style={{ maxWidth: 420, width: "100%", background: "var(--bg2)", border: "1px solid var(--red)", borderRadius: 12, padding: 24 }}>
-            <h4 style={{ color: "var(--red)", marginBottom: 10 }}>确认强行解除？</h4>
-            <p className="serif" style={{ fontSize: 14, color: "var(--gray)", lineHeight: 1.8, marginBottom: 18 }}>
-              将退回本金，但该笔质押对应的<b style={{ color: "var(--red)" }}>全部未领取 + 锁定中奖励将被没收</b>（回收进产出池）。
-              此操作不可撤销。若仅想退出，请等待到期后使用「解押本金」。
-            </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button className="btn btn-sm" onClick={() => setConfirmEmg(null)}>取消</button>
-              <button
-                className="btn btn-sm"
-                style={{ background: "var(--red)", color: "#fff" }}
-                disabled={busy !== ""}
-                onClick={() => confirmEmg !== null && void doEmergency(confirmEmg)}
-              >
-                {busy === "emergency" ? "处理中…" : "确认没收并解除"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }
