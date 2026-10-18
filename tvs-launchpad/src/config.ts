@@ -89,20 +89,21 @@ export const stakingConfig = {
 /**
  * 代币分发配置（TGE 锁仓释放 → 各多签角色）
  * distributorReady=false 时 /distribution 页面显示占位空态，不发任何 RPC 请求
- * 测试网已部署（BSC-97）：TokenDistributor 0x7fb0de501ea0d51b99705b95885ebf1ffd616de5，
- * 部署记录见 vsa-staking/deployments/testnet.json
+ * 测试网（BSC-97）：TokenDistributor 0x7fb0de501ea0d51b99705b95885ebf1ffd616de5（2026-10-13）
+ * 主网（BSC-56）：TokenDistributor 0x1425B5e3C86b405364B10ad412D20462e89Dd79B（2026-10-18）
+ *   记录见 vsa-staking/deployments/mainnet.json；5 条日程由 owner（金库多签）经 Safe 创建
  */
 export const distributorConfig = {
-  /** 合约是否已部署。false = 占位模式（测试网已部署 → true） */
-  distributorReady: IS_TESTNET,
+  /** 合约是否已部署。false = 占位模式（主网/测试网均已部署 → true） */
+  distributorReady: true,
   /** TokenDistributor 合约地址 */
   distributor: IS_TESTNET
     ? "0x7fb0de501ea0d51b99705b95885ebf1ffd616de5" // BSC Testnet
-    : "", // 主网部署后回填
-  /** 分发代币地址（须把分发合约加入该代币税豁免名单） */
+    : "0x1425B5e3C86b405364B10ad412D20462e89Dd79B", // BSC Mainnet（2026-10-18）
+  /** 分发代币地址（主网为 VSA；钱包↔分发合约转账零税，无需税豁免） */
   token: IS_TESTNET
     ? "0x28e1ec018dbc306cd57da27f412b9d4f1b4b6d15" // MockTVS（分发用）@ BSC Testnet
-    : "", // 主网部署后回填
+    : "0x02828c0a371ab1A0F2D2EC446484a06AAAa87777", // VSA @ BSC Mainnet
   /** 多签角色（展示用，与链上 beneficiary 对照） */
   roles: [
     { label: "市值多签", address: "0xa80F329Fd36b9c2DA6dEC86d1df1E518500A9123" },

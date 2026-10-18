@@ -31,6 +31,24 @@
     "evmVersion": "cancun",
     "licenseType": "MIT"
   },
+  "distributor": {
+    "address": "0x1425B5e3C86b405364B10ad412D20462e89Dd79B",
+    "token": "0x02828c0a371ab1A0F2D2EC446484a06AAAa87777",
+    "owner": "0xaBce72802F9d85CdB45063057E079ce6AbdD7812",
+    "pendingOwner": "0x0000000000000000000000000000000000000000",
+    "ownerNote": "部署时 owner 直接设为金库多签（Ownable 构造即生效，无需两步交接）",
+    "deploymentTx": "0xb3699e7b55f87c82f847e34d8d050a1ed9e0b13bc136dce1213dd72f8b97a731",
+    "blockNumber": 128316703,
+    "gasUsed": "1506699",
+    "total": "400000e18（40 万 VSA，金库多签全部余额）",
+    "scheduleStart": 1792305976,
+    "schedules": 0,
+    "schedulesNote": "5 条日程由 owner（金库多签）经 Safe 批量执行 approve + createSchedule 创建；批次 JSON 见 deployments/distributor-safe-batch-mainnet.json",
+    "scheme": "市值30%/TGE20%/cliff30d/linear365d ｜ LP20%/TGE30%/cliff0/linear180d ｜ 社区25%/TGE10%/cliff90d/linear730d ｜ 商学院15%/TGE10%/cliff90d/linear730d ｜ 质押10%/TGE0%/cliff0/linear730d（5 条均 revocable）",
+    "taxExempt": "无需配置：VSA(BABYTOKEN) 仅对 DEX 池子买卖征税，钱包↔分发合约转账零税",
+    "verification": "BscScan 已验证（solidity-standard-json-input；v0.8.28+commit.7893614a，optimizer runs=800，evmVersion=cancun，MIT）。注意：build-info input 顶层的 version/allowPaths/basePath/includePaths 四个 foundry 扩展键必须剥离，否则 API 报 Unknown key",
+    "script": "script/DistributorDeploy.s.sol（DISTRIBUTION_TOKEN=DISTRIBUTOR_OWNER=金库多签）"
+  },
   "script": "script/Deploy.s.sol",
   "notes": "2026-10-18 主网正式部署：规则与测试网一致 —— 单钱包不设任何上限（权重/质押量/产出份额均不限），质押期内不可解除、仅到期赎回；30/90/270 天档位与 1.0/1.5/2.5 倍权重；10 年产出精确 10,000,000 VSA；领取 50% 立即 + 50% 锁 90 天线性释放；复投 +10% bonus。验证参数必须带 contractaddress + optimizationUsed（否则 API 返回通用 Error!）"
 }
