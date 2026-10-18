@@ -1,0 +1,36 @@
+{
+  "network": "BSC Mainnet",
+  "chainId": 56,
+  "deployedAt": "2026-10-18",
+  "deployer": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
+  "daySeconds": 86400,
+  "contracts": {
+    "VSAStaking": "0x50d4737E4351158Af874DCC73Bdfdc5D1Ea122F0"
+  },
+  "externalTokens": {
+    "TVS": "0x221f7336711cd6eB72d8C897a0d185A12a357777",
+    "VSA": "0x02828c0a371ab1A0F2D2EC446484a06AAAa87777"
+  },
+  "deploymentTx": "0x9b9434fc66a3c1172521b5bd375b1c3751378fb993435f41673d1eda72d2a7c7",
+  "blockNumber": 128309761,
+  "gasUsed": "3187276",
+  "config": {
+    "daySecondsNote": "主网标准 86400 秒/业务日（合约 chainId 56 硬闸强制）",
+    "owner": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
+    "pendingOwner": "0x72f8637eC6519702B99a22Ec6F893FB3822dD213",
+    "ownerNote": "部署钱包代持 owner；pendingOwner = 质押多签，待由 Safe acceptOwnership 完成交接",
+    "taxExempt": "无需配置：TVS(FlapTaxTokenV3) 仅对与 DEX 池子的买卖征税，钱包↔质押合约转账零税",
+    "rewardPool": "0",
+    "bonusPool": "0",
+    "fundingNote": "两池均未注资，需由持 VSA 的钱包（金库多签 0xaBce72802F9d85CdB45063057E079ce6AbdD7812，当前持 40 万 VSA）approve + fundRewardPool/fundBonusPool"
+  },
+  "verification": {
+    "bscscan": "已验证（solidity-standard-json-input）",
+    "compiler": "v0.8.28+commit.7893614a",
+    "optimizer": "enabled, runs=800",
+    "evmVersion": "cancun",
+    "licenseType": "MIT"
+  },
+  "script": "script/Deploy.s.sol",
+  "notes": "2026-10-18 主网正式部署：规则与测试网一致 —— 单钱包不设任何上限（权重/质押量/产出份额均不限），质押期内不可解除、仅到期赎回；30/90/270 天档位与 1.0/1.5/2.5 倍权重；10 年产出精确 10,000,000 VSA；领取 50% 立即 + 50% 锁 90 天线性释放；复投 +10% bonus。验证参数必须带 contractaddress + optimizationUsed（否则 API 返回通用 Error!）"
+}

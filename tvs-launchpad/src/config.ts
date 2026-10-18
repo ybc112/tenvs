@@ -68,12 +68,12 @@ export const fmtAddress = (addr: string) =>
  * stakingReady=false 时 /stake 页面显示占位空态，不发任何 RPC 请求
  */
 export const stakingConfig = {
-  /** 合约是否已部署。false = 占位模式，前端禁用全部质押动作（测试网已部署 → true） */
-  stakingReady: IS_TESTNET,
+  /** 合约是否已部署。false = 占位模式，前端禁用全部质押动作（主网/测试网均已部署 → true） */
+  stakingReady: true,
   /** VSAStaking 合约地址 */
   staking: IS_TESTNET
     ? "0x90c14add8ab45146cf09085faaa88dd7d9a1cd5a" // BSC Testnet（2026-10-16 重部署：单钱包无上限、期内不可解除）
-    : "", // 主网部署后回填
+    : "0x50d4737E4351158Af874DCC73Bdfdc5D1Ea122F0", // BSC Mainnet（2026-10-18 正式部署）
   /** 质押币 TVS（主网与 Swap 同一地址；测试网为 MockTVS 测试币） */
   tvs: IS_TESTNET
     ? "0x60599d3C26ad2e22D984a3Ec43e9e4e930244473" // MockTVS @ BSC Testnet
@@ -81,7 +81,7 @@ export const stakingConfig = {
   /** 产出币 VSA（外部代币合约） */
   vsa: IS_TESTNET
     ? "0x8D99c642D81c914b1268afF57304CaC7287f19ec" // MockVSA @ BSC Testnet
-    : "", // 主网部署后回填
+    : "0x02828c0a371ab1a0f2d2ec446484a06aaaa87777", // VSA @ BSC Mainnet
   /** 10 年总产出（与链上 TOTAL_EMISSION 一致，前端展示用） */
   totalEmission: 10_000_000n * 10n ** 18n,
 };
