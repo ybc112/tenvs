@@ -1,24 +1,31 @@
 {
   "network": "BSC Mainnet",
   "chainId": 56,
-  "deployedAt": "2026-10-18",
+  "deployedAt": "2026-10-19（最新有效部署；2026-10-18 首版已弃用）",
   "deployer": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
   "daySeconds": 86400,
   "contracts": {
-    "VSAStaking": "0x50d4737E4351158Af874DCC73Bdfdc5D1Ea122F0"
+    "VSAStaking": "0x3299A40cf3C22b752CB2418d9eD0bb97351cA4A6"
+  },
+  "contractsObsolete": {
+    "VSAStaking_20261018_deploy": {
+      "address": "0x50d4737E4351158Af874DCC73Bdfdc5D1Ea122F0",
+      "reason": "2026-10-19 弃用：其上 owner 在部署后已由 transferOwnership + acceptOwnership 交接为质押多签（owner=0x72f8…d213、pendingOwner=0），不满足运营方要求的「先发起 transferOwnership 再由多签 acceptOwnership」流程；该合约零质押、两池皆空，弃用无任何影响"
+    }
   },
   "externalTokens": {
     "TVS": "0x221f7336711cd6eB72d8C897a0d185A12a357777",
     "VSA": "0x02828c0a371ab1A0F2D2EC446484a06AAAa87777"
   },
-  "deploymentTx": "0x9b9434fc66a3c1172521b5bd375b1c3751378fb993435f41673d1eda72d2a7c7",
-  "blockNumber": 128309761,
-  "gasUsed": "3187276",
+  "deploymentTx": "0xcbd522ff3c9f7b28affadcb1bc6804dd9c5dcb4c17f4ffd05eef96a8763ba20c",
+  "blockNumber": 128505652,
+  "gasUsed": "2451751",
+  "ownershipHandoffTx": "0x657c0ed96ad5dfe68946a8b324f8355fce73e6d6972ed80b54562aac0cb411aa（transferOwnership，block 128505725，gas 47797）",
   "config": {
     "daySecondsNote": "主网标准 86400 秒/业务日（合约 chainId 56 硬闸强制）",
     "owner": "0x39bB78BAdEC9d906CA77aF6b0882D0114263544F",
     "pendingOwner": "0x72f8637eC6519702B99a22Ec6F893FB3822dD213",
-    "ownerNote": "部署钱包代持 owner；pendingOwner = 质押多签，待由 Safe acceptOwnership 完成交接",
+    "ownerNote": "部署钱包为初始 owner；2026-10-19 已调 transferOwnership(质押多签) 设好 pendingOwner，待质押多签经 Safe 执行 acceptOwnership 生效",
     "taxExempt": "无需配置：TVS(FlapTaxTokenV3) 仅对与 DEX 池子的买卖征税，钱包↔质押合约转账零税",
     "rewardPool": "0",
     "bonusPool": "0",
@@ -50,5 +57,5 @@
     "script": "script/DistributorDeploy.s.sol（DISTRIBUTION_TOKEN=DISTRIBUTOR_OWNER=金库多签）"
   },
   "script": "script/Deploy.s.sol",
-  "notes": "2026-10-18 主网正式部署：规则与测试网一致 —— 单钱包不设任何上限（权重/质押量/产出份额均不限），质押期内不可解除、仅到期赎回；30/90/270 天档位与 1.0/1.5/2.5 倍权重；10 年产出精确 10,000,000 VSA；领取 50% 立即 + 50% 锁 90 天线性释放；复投 +10% bonus。验证参数必须带 contractaddress + optimizationUsed（否则 API 返回通用 Error!）"
+  "notes": "2026-10-18 主网正式部署：规则与测试网一致 —— 单钱包不设任何上限（权重/质押量/产出份额均不限），质押期内不可解除、仅到期赎回；30/90/270 天档位与 1.0/1.5/2.5 倍权重；10 年产出精确 10,000,000 VSA；领取 50% 立即 + 50% 锁 90 天线性释放；复投 +10% bonus。验证参数必须带 contractaddress + optimizationUsed（否则 API 返回通用 Error!）。2026-10-19 因运营方要求「先 transferOwnership 再 acceptOwnership」的交接流程，重部署新合约 0x3299A40c…cA4A6（初始 owner=部署钱包，已 transferOwnership 至质押多签，pendingOwner=0x72f8…d213）"
 }

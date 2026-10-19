@@ -73,7 +73,7 @@ export const stakingConfig = {
   /** VSAStaking 合约地址 */
   staking: IS_TESTNET
     ? "0x90c14add8ab45146cf09085faaa88dd7d9a1cd5a" // BSC Testnet（2026-10-16 重部署：单钱包无上限、期内不可解除）
-    : "0x50d4737E4351158Af874DCC73Bdfdc5D1Ea122F0", // BSC Mainnet（2026-10-18 正式部署）
+    : "0x3299A40cf3C22b752CB2418d9eD0bb97351cA4A6", // BSC Mainnet（2026-10-19 重部署：pendingOwner=质押多签，待 acceptOwnership）
   /** 质押币 TVS（主网与 Swap 同一地址；测试网为 MockTVS 测试币） */
   tvs: IS_TESTNET
     ? "0x60599d3C26ad2e22D984a3Ec43e9e4e930244473" // MockTVS @ BSC Testnet
