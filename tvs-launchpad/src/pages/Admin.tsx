@@ -122,9 +122,13 @@ export default function Admin() {
       toast("当前钱包不是 owner —— owner 是多签，请到 Safe 执行", "err");
       return;
     }
+    const need = (r ?? 0n) + (b ?? 0n);
+    if (st.acctVsa < need) {
+      toast(`VSA 余额不足：当前钱包 ${fmtNumber(st.acctVsa, 18, 2)}，本次需 ${fmtNumber(need, 18, 2)}。请先把 VSA 转入该地址再操作`, "err");
+      return;
+    }
     setBusy(true);
     try {
-      const need = (r ?? 0n) + (b ?? 0n);
       const vsa = new Contract(vsaAddr, VSA_ABI, signer);
       const approveFn = vsa.approve as (a: string, b: bigint) => Promise<{ wait: () => Promise<unknown> }>;
       const cur = (await vsa.allowance(account, stakingAddr)) as bigint;
@@ -220,7 +224,7 @@ export default function Admin() {
       <SectionTitle
         number="02"
         title="一键注资"
-        intro="金额按 VSA 枚数填写，可只填一个池。点一次按钮自动完成「授权 + 注资」。owner 是多签时本页不可执行，请到 Safe 操作。"
+        intro="金额按 VSA 枚数填写，可只填一个池。点一次按钮自动完成「授权 + 注资」。仅当当前连接钱包 = owner 时可执行；owner 是多签时，请在 Safe App 内打开本页并连接多签后操作。"
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, margin: "18px 0 18px" }}>
         <div>
@@ -239,6 +243,11 @@ export default function Admin() {
         {account && !isOwner && (
           <span className="serif" style={{ fontSize: 12.5, color: "var(--gray-d)" }}>
             当前钱包不是 owner，按钮不可用{ownerIsMulti ? "（owner 已交由多签，请用 Safe 发起）" : ""}。
+          </span>
+        )}
+        {account && isOwner && st.acctVsa === 0n && (
+          <span className="serif" style={{ fontSize: 12.5, color: "var(--gold-l)" }}>
+            当前钱包 VSA 余额为 0 —— 请先把 VSA 转入该地址，再点注资。
           </span>
         )}
       </div>
